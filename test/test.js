@@ -36,7 +36,8 @@ describe('Test hdwallet', function () {
 		var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
 		hdwallet.on('connect', function() {
 			hdwallet.getAddressPrivateKey('mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy', function (err, priv) {
-				if (err) return done(err)
+				if (err) console.error(err)
+				assert(!err)
 				assert(priv.toWIF(bitcoin.networks.testnet), 'cQ176k8LDck5aNJTQcXd7G4rCqGM3jhJyZ7MNawyzAfaWuVpP5Xb')
 				done()
 			})

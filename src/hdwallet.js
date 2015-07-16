@@ -15,29 +15,17 @@ var ASKING_INTERVAL = 4
 
 var coluHost = 'https://dev.engine.colu.co'
 
-module.exports = HDWallet
-
-function HDWallet (args) {
+var HDWallet = function (args) {
   var self = this
 
   args = args || {}
-  var redisPort = args.redisPort || 6379
-  var redisHost = args.redisHost || '127.0.0.1'
+  self.redisPort = args.redisPort || 6379
+  self.redisHost = args.redisHost || '127.0.0.1'
   var network = args.network || null
   var privateSeed = args.privateSeed || null
   
   self.coluHost = coluHost
-  self.hasRedis = true
-  self.redisClient = redis.createClient(redisPort, redisHost)
-  self.redisClient.on('error', function (err) {
-    // console.error('Redis err: ' + err)
-    self.redisClient.end()
-    self.hasRedis = false
-  })
-  self.redisClient.on('connect', function () {
-    // console.log('redis connected!')
-    self.hasRedis = true
-  })
+  
   self.fs = new FileSystem()
   if (network && network.toLowerCase() == 'testnet') {
     self.network = bitcoin.networks.testnet
@@ -60,6 +48,23 @@ util.inherits(HDWallet, events.EventEmitter)
 
 HDWallet.prototype.init = function () {
 	var self = this
+
+  self.redisClient = redis.createClient(self.redisPort, self.redisHost)
+  self.redisClient.on('error', function (err) {
+    // console.error('Redis err: ' + err)
+    self.redisClient.end()
+    self.hasRedis = false
+    self.afterRedisInit()
+  })
+  self.redisClient.on('connect', function () {
+    // console.log('redis connected!')
+    self.hasRedis = true
+    self.afterRedisInit()
+  })
+}
+
+HDWallet.prototype.afterRedisInit = function () {
+  var self = this 
 
   if (self.needToDiscover) {
     self.discover(function (err) {
@@ -137,7 +142,7 @@ HDWallet.prototype.setNextAccount = function (nextAccount) {
 
 HDWallet.prototype.registerAddress = function (address, accountIndex, addressIndex, change) {
   var self = this
-
+  // console.log('registering '+address)
 	change = (change) ? 1 : 0
 	var addressKey = self.getKeyPrefix()+'/'+address
 	var addressValue = 'm/44\'/0\'/'+accountIndex+'\'/'+change+'/'+addressIndex
@@ -155,6 +160,7 @@ HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
 
 	self.getAddressPath(address, function (err, addressPath) {
 		if (err) return callback(err)
+    if (!addressPath) return callback('Addresss '+address+' privateKey not found.')
 		var path = addressPath.split('/')
 		if (!path.length || path[0] != 'm') {
 			return callback('Wrong path format')
@@ -247,10 +253,10 @@ HDWallet.prototype.discoverAccount = function (accountIndex, callback) {
           if (address_obj.active) {
             emptyAddresses = 0
             active = true
-            console.log('active')
+            // console.log('active')
           } else {
             emptyAddresses++
-            console.log('inactive')
+            // console.log('inactive')
           }
         }
         cb()
@@ -268,7 +274,7 @@ HDWallet.prototype.discoverAddress = function (accountIndex, addressIndex, callb
   var hdnode = deriveAddress(self.master, accountIndex, addressIndex)
   var address = hdnode.getAddress().toString()
   self.registerAddress(address, accountIndex, addressIndex)
-  console.log('discovering address: ' + address)
+  // console.log('discovering address: ' + address)
   self.isAddressActive(address, callback)
 }
 
@@ -280,9 +286,19 @@ HDWallet.prototype.discoverAddresses = function (accountIndex, addressIndex, int
     var address = hdnode.getAddress().toString()
     self.registerAddress(address, accountIndex, addressIndex)
     addresses.push(address)
-    console.log('discovering address: ' + address)
+    // console.log('discovering address: ' + address)
   }
   self.isAddressesActive(addresses, callback)
+}
+
+HDWallet.prototype.registerAccount = function (account) {
+  var self = this
+
+  for (var i = 0; i < MAX_EMPTY_ADDRESSES; i++) {
+    var hdnode = deriveAddress(self.master, account, i)
+    var address = hdnode.getAddress().toString()
+    self.registerAddress(address, account, i)
+  }
 }
 
 HDWallet.prototype.getPrivateSeed = function () {
@@ -295,9 +311,10 @@ HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
   var self = this
 
   if (typeof account === 'undefined') {
-    account = account || self.nextAccount++
+    account = self.nextAccount++
+    self.setNextAccount(self.nextAccount)
+    self.registerAccount(account)
   }
-  self.setNextAccount(self.nextAccount)
   addressIndex = addressIndex || 0
   var hdnode = deriveAddress(self.master, account, addressIndex)
   var privateKey = hdnode.privKey
@@ -354,7 +371,7 @@ HDWallet.prototype.isAddressesActive = function (addresses, callback) {
   )
 }
 
-function deriveAddress (master, accountIndex, addressIndex) {
+var deriveAddress = function (master, accountIndex, addressIndex) {
   var node = master
   // BIP0044:
   // purpose'
@@ -371,8 +388,10 @@ function deriveAddress (master, accountIndex, addressIndex) {
   return node
 }
 
-function doubleSha256 (message) {
+var doubleSha256 = function (message) {
 	var sha = crypto.createHash('sha256').update(message).digest()
 	sha = crypto.createHash('sha256').update(sha).digest()
 	return sha
 }
+
+module.exports = HDWallet
