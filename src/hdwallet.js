@@ -15,12 +15,12 @@ var ASKING_INTERVAL = 4
 
 var coluHost = 'https://dev.engine.colu.co'
 
-var HDWallet = function (args) {
-  args = args || {}
-  this.redisPort = args.redisPort || 6379
-  this.redisHost = args.redisHost || '127.0.0.1'
-  var network = args.network || null
-  var privateSeed = args.privateSeed || null
+var HDWallet = function (settings) {
+  settings = settings || {}
+  this.redisPort = settings.redisPort || 6379
+  this.redisHost = settings.redisHost || '127.0.0.1'
+  var network = settings.network || null
+  var privateSeed = settings.privateSeed || null
   this.coluHost = coluHost
   this.fs = new FileSystem()
   if (network && network.toLowerCase() === 'testnet') {
