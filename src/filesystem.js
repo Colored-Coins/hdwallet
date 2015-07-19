@@ -31,27 +31,25 @@ function FileSystem (callback) {
 }
 
 FileSystem.prototype.get = function (key) {
-  var self = this
-  if (self.conf && key && key in self.conf) {
-    return self.conf[key]
+  if (this.conf && key && key in this.conf) {
+    return this.conf[key]
   }
   return null
 }
 
 FileSystem.prototype.set = function (key, value, callback) {
-  var self = this
   if (callback) {
-    if (!self.conf) return callback('No conf file loaded.')
+    if (!this.conf) return callback('No conf file loaded.')
     if (!key) return callback('No key.')
     value = value || null
-    self.conf[key] = value
-    return safePathWrite(self.configFile, self.conf, callback)
+    this.conf[key] = value
+    return safePathWrite(this.configFile, this.conf, callback)
   } else {
-    if (!self.conf) return 'No conf file loaded.'
+    if (!this.conf) return 'No conf file loaded.'
     if (!key) return 'No key.'
     value = value || null
-    self.conf[key] = value
-    return safePathWrite(self.configFile, self.conf)
+    this.conf[key] = value
+    return safePathWrite(this.configFile, this.conf)
   }
 }
 

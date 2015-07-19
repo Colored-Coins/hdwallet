@@ -4,21 +4,19 @@
   "description": "BIP44 wallet",
   "main": "src/hdwallet.js",
   "dependencies": {
-    "assert": "^1.3.0",
     "async": "^1.3.0",
     "bitcoinjs-lib": "^1.5.7",
-    "crypto": "^0.0.3",
-    "events": "^1.0.2",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "path-extra": "^1.0.3",
     "redis": "^0.12.1",
-    "request": "^2.58.0",
-    "util": "^0.10.3"
+    "request": "^2.58.0"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "coverage": "istanbul cover _mocha -- -R spec",
+    "coveralls": "cat ./coverage/lcov.info | coveralls"
   },
   "repository": {
     "type": "git",
@@ -33,7 +31,16 @@
     "colored",
     "coins"
   ],
-  "author": "bejavu <tal@colu.co>",
+  "contributors": [
+    {
+      "name": "Eliran Zach",
+      "email": "thehobbit85@gmail.com"
+    },
+    {
+      "name": "bejavu",
+      "email": "tal@colu.co"
+    }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Colu-platform/hdwallet/issues"
