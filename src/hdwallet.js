@@ -185,7 +185,7 @@ HDWallet.prototype.discover = function (callback) {
     async.whilst(
       function () { return emptyAccounts < MAX_EMPTY_ACCOUNTS },
       function (cb) {
-        console.log('discovering account: ' + currentAccount)
+        // console.log('discovering account: ' + currentAccount)
         self.discoverAccount(currentAccount++, function (err, res) {
           if (err) return cb(err)
           if (res) {
@@ -286,6 +286,12 @@ HDWallet.prototype.getPublicKey = function (account, addressIndex) {
     addressIndex: addressIndex || 0
   }
   return publicKey
+}
+
+HDWallet.prototype.getAddress = function (account, addressIndex) {
+  var self = this
+
+  return self.getPublicKey(account, addressIndex).getAddress(self.network).toString()
 }
 
 HDWallet.prototype.isAddressActive = function (addresses, callback) {
