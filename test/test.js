@@ -7,7 +7,6 @@ describe('Test hdwallet', function () {
     var hdwallet = new HDWallet({network: 'testnet'})
     var privateSeed = hdwallet.getPrivateSeed()
     assert.equal(typeof privateSeed, 'string', 'Should be a string.')
-    console.log(privateSeed)
     assert.equal(privateSeed.length, 64, 'Should be 32 bytes long (hex string of 64 chars).')
     done()
   })
