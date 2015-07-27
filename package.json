@@ -1,6 +1,6 @@
 {
   "name": "hdwallet",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "BIP44 wallet",
   "main": "src/hdwallet.js",
   "dependencies": {

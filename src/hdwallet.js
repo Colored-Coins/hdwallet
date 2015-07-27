@@ -108,11 +108,15 @@ HDWallet.prototype.getNextAccount = function (callback) {
   if (self.hasRedis) {
     return self.redisClient.get(coluSdkNextAccount, function (err, nextAccount) {
       if (err) return callback(err)
+      if (nextAccount)
+        nextAccount = parseInt(nextAccount)
       return callback(null, nextAccount)
     })
   } else if (self.fs) {
-    var result = self.fs.get(coluSdkNextAccount) || 0
-    return callback(null, result)
+    var nextAccount = self.fs.get(coluSdkNextAccount) || 0
+    if (nextAccount)
+      nextAccount = parseInt(nextAccount)
+    return callback(null, nextAccount)
   } else {
     return callback(null, self.nextAccount)
   }
@@ -202,19 +206,28 @@ HDWallet.prototype.discover = function (callback) {
     self.nextAccount = nextAccount || 0
     var emptyAccounts = 0
     var currentAccount = nextAccount || 0
+
     async.whilst(
       function () { return emptyAccounts < MAX_EMPTY_ACCOUNTS },
       function (cb) {
-        // console.log('discovering account: ' + currentAccount)
-        self.discoverAccount(currentAccount++, function (err, res) {
-          if (err) return cb(err)
-          if (res) {
-            emptyAccounts = 0
-            self.setNextAccount(currentAccount)
-          } else {
-            emptyAccounts++
-          }
-          cb()
+        async.times(MAX_EMPTY_ACCOUNTS - emptyAccounts, function (accountIndexDelata, cb) {
+          var accountIndex = currentAccount + accountIndexDelata
+          // console.log('discovering account '+accountIndex)
+          self.discoverAccount(accountIndex, cb)
+        },
+        function (err, actives) {
+          if (err) return callback(err)
+          actives.forEach(function (isActive) {
+            if (isActive) {
+              self.setNextAccount(currentAccount + 1)
+              emptyAccounts = 0
+            }
+            else {
+              emptyAccounts++
+            }
+            currentAccount++
+          })
+        cb()
         })
       },
       function (err) {
