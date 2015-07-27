@@ -269,7 +269,7 @@ HDWallet.prototype.discoverAddress = function (accountIndex, addressIndex, inter
   for (var i = 0; i < interval; i++) {
     var hdnode = deriveAddress(self.master, accountIndex, addressIndex++)
     var address = hdnode.getAddress().toString()
-    self.registerAddress(address, accountIndex, addressIndex)
+    self.registerAddress(address, accountIndex, addressIndex - 1)
     addresses.push(address)
     // console.log('discovering address: ' + address)
   }
