@@ -1,6 +1,6 @@
 {
   "name": "hdwallet",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "BIP44 wallet",
   "main": "src/hdwallet.js",
   "dependencies": {
@@ -12,7 +12,10 @@
     "redis": "^0.12.1",
     "request": "^2.58.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "chai": "^3.0.0",
+    "mocha": "^2.2.4"
+  },
   "scripts": {
     "test": "mocha",
     "coverage": "istanbul cover _mocha -- -R spec",

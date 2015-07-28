@@ -22,7 +22,6 @@ var HDWallet = function (settings) {
   var network = settings.network || null
   var privateSeed = settings.privateSeed || null
   this.coluHost = coluHost
-  this.fs = new FileSystem()
   if (network && network.toLowerCase() === 'testnet') {
     this.network = bitcoin.networks.testnet
   } else {
@@ -42,31 +41,38 @@ var HDWallet = function (settings) {
 
 util.inherits(HDWallet, events.EventEmitter)
 
-HDWallet.prototype.init = function () {
+HDWallet.prototype.init = function (cb) {
   var self = this
   this.redisClient = redis.createClient(this.redisPort, this.redisHost)
   this.redisClient.on('error', function (err) {
     if (err) console.error('Redis err: ' + err)
     self.redisClient.end()
     self.hasRedis = false
-    self.afterRedisInit()
+    self.fs = new FileSystem()
+    self.afterRedisInit(cb)
   })
   this.redisClient.on('connect', function () {
     // console.log('redis connected!')
     self.hasRedis = true
-    self.afterRedisInit()
+    self.afterRedisInit(cb)
   })
 }
 
-HDWallet.prototype.afterRedisInit = function () {
+HDWallet.prototype.afterRedisInit = function (cb) {
   var self = this
   if (self.needToDiscover) {
-    this.discover(function (err) {
-      if (err) return self.emit('error', err)
+    self.discover(function (err) {
+      if (err) {
+        self.emit('error', err)
+        if (cb) return cb(err)
+        else return false
+      }
       self.emit('connect')
+      if (cb) cb(null, self)
     })
   } else {
-    this.emit('connect')
+    self.emit('connect')
+    if (cb) return cb(null, self)
   }
 }
 
