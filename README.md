@@ -42,6 +42,7 @@ HDWallet.prototype.getPrivateSeed()
 HDWallet.prototype.getPrivateKey(account, addressIndex)
 HDWallet.prototype.getPublicKey(account, addressIndex)
 HDWallet.prototype.isAddressActive(addresses, cb)
+HDWallet.prototype.getAddress(account, addressIndex)
 ```
 
 ### Testing
