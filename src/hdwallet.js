@@ -41,7 +41,6 @@ var HDWallet = function (settings) {
   }
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
   self.nextAccount = 0
-  self.hdwallet = {}
 }
 
 util.inherits(HDWallet, events.EventEmitter)
@@ -126,12 +125,40 @@ HDWallet.prototype.getNextAccount = function (callback) {
   }
 }
 
+HDWallet.prototype.getNextAccountAddress = function (accountIndex, callback) {
+  var self = this
+
+  var coluSdkNextAccountAddress = self.getKeyPrefix() + '/coluSdknextAccountAddress/'+accountIndex
+  if (self.hasRedis) {
+    return self.redisClient.get(coluSdkNextAccountAddress, function (err, nextAccountAddress) {
+      if (err) return callback(err)
+      if (nextAccountAddress)
+        nextAccountAddress = parseInt(nextAccountAddress)
+      return callback(null, nextAccountAddress)
+    })
+  } else if (self.fs) {
+    var nextAccountAddress = self.fs.get(coluSdkNextAccountAddress) || 0
+    if (nextAccountAddress)
+      nextAccountAddress = parseInt(nextAccountAddress)
+    return callback(null, nextAccountAddress)
+  } else {
+    return callback(null, 0)
+  }
+}
+
 HDWallet.prototype.setNextAccount = function (nextAccount) {
   var self = this
 
   var coluSdkNextAccount = self.getKeyPrefix() + '/coluSdkNextAccount'
   self.nextAccount = nextAccount
   self.setDB(coluSdkNextAccount, self.nextAccount)
+}
+
+HDWallet.prototype.setNextAccountAddress = function (accountIndex, nextAccountAddress) {
+  var self = this
+
+  var coluSdkNextAccountAddress = self.getKeyPrefix() + '/coluSdknextAccountAddress/'+accountIndex
+  self.setDB(coluSdkNextAccountAddress, nextAccountAddress)
 }
 
 HDWallet.prototype.registerAddress = function (address, accountIndex, addressIndex, change) {
@@ -246,33 +273,41 @@ HDWallet.prototype.discover = function (callback) {
 HDWallet.prototype.discoverAccount = function (accountIndex, callback) {
   var self = this
 
-  var emptyAddresses = 0
-  var currentAddresses = 0
-  var active = false
-  async.whilst(
-    function () { return emptyAddresses < MAX_EMPTY_ADDRESSES },
-    function (cb) {
-      self.discoverAddress(accountIndex, currentAddresses, ASKING_INTERVAL, function (err, res) {
-        if (err) return cb(err)
-        currentAddresses += ASKING_INTERVAL
-        for (var i = 0; i < ASKING_INTERVAL; i++) {
-          var address_obj = res[i]
-          if (address_obj.active) {
-            emptyAddresses = 0
-            active = true
-            // console.log('active')
-          } else {
-            emptyAddresses++
-            // console.log('inactive')
-          }
-        }
+  self.getNextAccountAddress(accountIndex, function (err, nextAccountAddress) {
+    if (err) return callback(err)
+    var emptyAddresses = 0
+    var currentAddress = nextAccountAddress || 0
+    var active = false
+
+    async.whilst(
+      function () { return emptyAddresses < MAX_EMPTY_ADDRESSES },
+      function (cb) {
+        async.times(MAX_EMPTY_ADDRESSES - emptyAddresses, function (addressIndexDelata, cb) {
+          var addressIndex = currentAddress + addressIndexDelata
+          self.discoverAddress(accountIndex, addressIndex, cb)
+        },
+        function (err, addresses) {
+          if (err) return callback(err)
+          addresses.forEach(function (address) {
+            if (address && address.length && address[0].active) {
+              self.setNextAccountAddress(accountIndex, currentAddress + 1)
+              emptyAddresses = 0
+              active = true
+            }
+            else {
+              emptyAddresses++
+            }
+            currentAddress++
+          })
         cb()
-      })
-    },
-    function (err) {
-      return callback(err, active)
-    }
-  )
+        })
+      },
+      function (err) {
+        if (err) return callback(err)
+        callback(null, active)
+      }
+    )
+  })
 }
 
 HDWallet.prototype.discoverAddress = function (accountIndex, addressIndex, interval, callback) {
@@ -326,10 +361,7 @@ HDWallet.prototype.getPublicKey = function (account, addressIndex) {
 
   var privateKey = self.getPrivateKey(account, addressIndex)
   var publicKey = privateKey.pub
-  self.hdwallet[publicKey.toHex()] = {
-    accountIndex: account || self.nextAccount - 1,
-    addressIndex: addressIndex || 0
-  }
+
   return publicKey
 }
 
