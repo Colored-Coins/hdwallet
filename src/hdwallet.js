@@ -376,7 +376,7 @@ HDWallet.prototype.isAddressActive = function (addresses, callback) {
 
   if (typeof addresses === 'string') addresses = [addresses]
   request.post(self.coluHost + '/is_addresses_active',
-    {form: {addresses: addresses}},
+    {json: {addresses: addresses}},
     function (err, response, body) {
       if (err) {
         return callback(err)
@@ -385,7 +385,6 @@ HDWallet.prototype.isAddressActive = function (addresses, callback) {
         return callback(body)
       }
       if (!body) return callback('Empty response from Colu server.')
-      body = JSON.parse(body)
       return callback(null, body)
     }
   )
