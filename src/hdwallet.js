@@ -88,68 +88,87 @@ HDWallet.prototype.getKeyPrefix = function () {
   return doubleSha256(self.getPrivateSeed()) + '/' + network
 }
 
-HDWallet.prototype.getSavedKey = function (key, callback) {
+HDWallet.prototype.setDB = function (key, value) {
   var self = this
 
-  var savedKey = self.getKeyPrefix() + '/' + key
+  var seedKey = self.getKeyPrefix()
   if (self.hasRedis) {
-    return self.redisClient.get(savedKey, function (err, value) {
-      if (err) return callback(err)
-      return callback(null, value)
-    })
+    self.redisClient.hset(seedKey, key, value)
+  } else {
+    if (self.fs) {
+      self.fs.hset(seedKey, key, value)
+    }
+  }
+}
+
+HDWallet.prototype.getDB = function (key, callback) {
+  var self = this
+
+  var seedKey = self.getKeyPrefix()
+  if (self.hasRedis) {
+    return self.redisClient.hget(seedKey, key, callback)
   } else if (self.fs) {
-    return callback(null, self.fs.get(savedKey))
+    return callback(null, self.fs.hget(seedKey, key))
   } else {
     return callback('Key ' + key + ' not found.')
   }
 }
 
+HDWallet.prototype.getKeys = function (callback) {
+  var self = this
+
+  var seedKey = self.getKeyPrefix()
+  if (self.hasRedis) {
+    return self.redisClient.hkeys(seedKey, callback)
+  } else if (self.fs) {
+    return callback(null, self.fs.hkeys(seedKey))
+  } else {
+    return callback('Keys not found.')
+  }
+}
+
+HDWallet.prototype.getAddresses = function (callback) {
+  var self = this
+
+  self.getKeys(function (err, keys) {
+    if (err) return callback(err)
+    var addresses = []
+    keys.forEach(function (key) {
+      if (key.indexOf('address/') == 0) {
+        var address = key.split('/')[1]
+        addresses.push(address)
+      }
+    })
+    return callback(null, addresses)
+  })  
+}
+
 HDWallet.prototype.getNextAccount = function (callback) {
   var self = this
 
-  var coluSdkNextAccount = self.getKeyPrefix() + '/coluSdkNextAccount'
-  if (self.hasRedis) {
-    return self.redisClient.get(coluSdkNextAccount, function (err, nextAccount) {
-      if (err) return callback(err)
-      if (nextAccount)
-        nextAccount = parseInt(nextAccount)
-      return callback(null, nextAccount)
-    })
-  } else if (self.fs) {
-    var nextAccount = self.fs.get(coluSdkNextAccount) || 0
-    if (nextAccount)
-      nextAccount = parseInt(nextAccount)
-    return callback(null, nextAccount)
-  } else {
-    return callback(null, self.nextAccount)
-  }
+  var coluSdkNextAccount = 'coluSdkNextAccount'
+  self.getDB(coluSdkNextAccount, function (err, nextAccount) {
+    if (err) return callback(err)
+    nextAccount = nextAccount || 0
+    return callback(null, parseInt(nextAccount, 10))
+  })
 }
 
 HDWallet.prototype.getNextAccountAddress = function (accountIndex, callback) {
   var self = this
 
-  var coluSdkNextAccountAddress = self.getKeyPrefix() + '/coluSdknextAccountAddress/'+accountIndex
-  if (self.hasRedis) {
-    return self.redisClient.get(coluSdkNextAccountAddress, function (err, nextAccountAddress) {
-      if (err) return callback(err)
-      if (nextAccountAddress)
-        nextAccountAddress = parseInt(nextAccountAddress)
-      return callback(null, nextAccountAddress)
-    })
-  } else if (self.fs) {
-    var nextAccountAddress = self.fs.get(coluSdkNextAccountAddress) || 0
-    if (nextAccountAddress)
-      nextAccountAddress = parseInt(nextAccountAddress)
-    return callback(null, nextAccountAddress)
-  } else {
-    return callback(null, 0)
-  }
+  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/'+accountIndex
+  self.getDB(coluSdkNextAccountAddress, function (err, nextAccountAddress) {
+    if (err) return callback(err)
+    nextAccountAddress = nextAccountAddress || 0
+    return callback(null, parseInt(nextAccountAddress, 10))
+  })
 }
 
 HDWallet.prototype.setNextAccount = function (nextAccount) {
   var self = this
 
-  var coluSdkNextAccount = self.getKeyPrefix() + '/coluSdkNextAccount'
+  var coluSdkNextAccount = 'coluSdkNextAccount'
   self.nextAccount = nextAccount
   self.setDB(coluSdkNextAccount, self.nextAccount)
 }
@@ -157,7 +176,7 @@ HDWallet.prototype.setNextAccount = function (nextAccount) {
 HDWallet.prototype.setNextAccountAddress = function (accountIndex, nextAccountAddress) {
   var self = this
 
-  var coluSdkNextAccountAddress = self.getKeyPrefix() + '/coluSdknextAccountAddress/'+accountIndex
+  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/'+accountIndex
   self.setDB(coluSdkNextAccountAddress, nextAccountAddress)
 }
 
@@ -165,28 +184,18 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
   var self = this
 
   // console.log('registering '+address)
+
+  var addressKey = 'address/'+address
   change = (change) ? 1 : 0
-  var addressKey = self.getKeyPrefix() + '/' + address
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
   self.setDB(addressKey, addressValue)
-}
-
-HDWallet.prototype.setDB = function (key, value) {
-  var self = this
-
-  if (self.hasRedis) {
-    self.redisClient.set(key, value)
-  } else {
-    if (self.fs) {
-      self.fs.set(key, value)
-    }
-  }
 }
 
 HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
   var self = this
 
-  self.getAddressPath(address, function (err, addressPath) {
+  var addressKey = 'address/'+address
+  self.getAddressPath(addressKey, function (err, addressPath) {
     if (err) return callback(err)
     if (!addressPath) return callback('Addresss ' + address + ' privateKey not found.')
     var path = addressPath.split('/')
@@ -226,7 +235,7 @@ HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
 }
 
 HDWallet.prototype.getAddressPath = function (address, callback) {
-  this.getSavedKey(address, callback)
+  this.getDB(address, callback)
 }
 
 HDWallet.prototype.discover = function (callback) {
