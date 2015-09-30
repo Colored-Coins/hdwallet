@@ -60,7 +60,7 @@ FileSystem.prototype.hset = function (key, hash, value, callback) {
   if (!hash) return callback('No hash.')
   value = value || null
   this.conf[key] = this.conf[key] || {}
-  if (typeof this.conf[key] !== 'object') return callback('Key '+key+' is set but not an object.')
+  if (typeof this.conf[key] !== 'object') return callback('Key ' + key + ' is set but not an object.')
   this.conf[key][hash] = value
   return safePathWrite(this.configFile, this.conf, callback)
 }

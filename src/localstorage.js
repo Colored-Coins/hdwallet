@@ -23,11 +23,11 @@ LocalStorage.prototype.set = function (key, value) {
 
 LocalStorage.prototype.hget = function (key, hash) {
   if (key && hash) {
-  	var hvalue = this.get(key)
-  	if (typeof hvalue === 'object') {
-  		return hvalue[hash]
-  	}
-  } 
+    var hvalue = this.get(key)
+    if (typeof hvalue === 'object') {
+      return hvalue[hash]
+    }
+  }
   return null
 }
 
@@ -41,21 +41,20 @@ LocalStorage.prototype.hset = function (key, hash, value, callback) {
   	// this.set(key, {})
   	hvalue = {}
   }
-  if (typeof hvalue !== 'object') return callback('Key '+key+' is set but not an object.')
+  if (typeof hvalue !== 'object') return callback('Key ' + key + ' is set but not an object.')
   hvalue[hash] = value
-  set(key, hvalue)
+  this.set(key, hvalue)
   callback()
 }
 
 LocalStorage.prototype.hkeys = function (key) {
   if (key) {
-  	var hvalue = this.get(key)
-  	if (typeof hvalue === 'object') {
-  		return Object.keys(hvalue)
-  	}
-  	else {
-  		return null
-  	}
+    var hvalue = this.get(key)
+    if (typeof hvalue === 'object') {
+      return Object.keys(hvalue)
+    } else {
+      return null
+    }
   }
   return []
 }
