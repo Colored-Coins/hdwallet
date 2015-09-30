@@ -67,7 +67,7 @@ FileSystem.prototype.hset = function (key, hash, value, callback) {
 
 FileSystem.prototype.hkeys = function (key) {
   if (this.conf && key && this.conf[key] && typeof this.conf[key] === 'object') {
-    return Object.keys(conf[key])
+    return Object.keys(this.conf[key])
   }
   return []
 }

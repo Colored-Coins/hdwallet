@@ -6,8 +6,13 @@ var request = require('request')
 var bitcoin = require('bitcoinjs-lib')
 var crypto = require('crypto')
 var redis = require('redis')
+var FileSystem
 
-var FileSystem = require('./filesystem.js')
+if (typeof window === 'undefined') {
+  FileSystem = require('./filesystem.js')
+} else {
+  FileSystem = require('./localstorage.js')
+}
 
 var MAX_EMPTY_ACCOUNTS = 3
 var MAX_EMPTY_ADDRESSES = 3
@@ -20,7 +25,6 @@ var HDWallet = function (settings) {
   var self = this
 
   settings = settings || {}
-  settings = settings || {}
   if (settings.network === 'testnet') {
     self.coluHost = settings.coluHost || testnetColuHost
     self.network = bitcoin.networks.testnet
@@ -31,7 +35,6 @@ var HDWallet = function (settings) {
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
   var privateSeed = settings.privateSeed || null
-  self.fs = new FileSystem()
   if (!privateSeed) {
     self.privateSeed = crypto.randomBytes(32)
     self.needToDiscover = false
@@ -47,14 +50,17 @@ util.inherits(HDWallet, events.EventEmitter)
 
 HDWallet.prototype.init = function (cb) {
   var self = this
-
+  var end = function () {
+    self.hasRedis = false
+    self.fs = new FileSystem()
+    return self.afterRedisInit(cb)
+  }
+  if (typeof window !== 'undefined') return end()
   self.redisClient = redis.createClient(self.redisPort, self.redisHost)
   self.redisClient.on('error', function (err) {
     if (err) console.error('Redis err: ' + err)
     self.redisClient.end()
-    self.hasRedis = false
-    self.fs = new FileSystem()
-    self.afterRedisInit(cb)
+    end()
   })
   self.redisClient.on('connect', function () {
     // console.log('redis connected!')
