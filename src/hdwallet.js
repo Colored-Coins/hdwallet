@@ -140,13 +140,13 @@ HDWallet.prototype.getAddresses = function (callback) {
     if (err) return callback(err)
     var addresses = []
     keys.forEach(function (key) {
-      if (key.indexOf('address/') == 0) {
+      if (key.indexOf('address/') === 0) {
         var address = key.split('/')[1]
         addresses.push(address)
       }
     })
     return callback(null, addresses)
-  })  
+  })
 }
 
 HDWallet.prototype.getNextAccount = function (callback) {
@@ -163,7 +163,7 @@ HDWallet.prototype.getNextAccount = function (callback) {
 HDWallet.prototype.getNextAccountAddress = function (accountIndex, callback) {
   var self = this
 
-  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/'+accountIndex
+  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/' + accountIndex
   self.getDB(coluSdkNextAccountAddress, function (err, nextAccountAddress) {
     if (err) return callback(err)
     nextAccountAddress = nextAccountAddress || 0
@@ -182,7 +182,7 @@ HDWallet.prototype.setNextAccount = function (nextAccount) {
 HDWallet.prototype.setNextAccountAddress = function (accountIndex, nextAccountAddress) {
   var self = this
 
-  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/'+accountIndex
+  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/' + accountIndex
   self.setDB(coluSdkNextAccountAddress, nextAccountAddress)
 }
 
@@ -191,7 +191,7 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
 
   // console.log('registering '+address)
 
-  var addressKey = 'address/'+address
+  var addressKey = 'address/' + address
   change = (change) ? 1 : 0
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
   self.setDB(addressKey, addressValue)
@@ -200,7 +200,7 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
 HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
   var self = this
 
-  var addressKey = 'address/'+address
+  var addressKey = 'address/' + address
   self.getAddressPath(addressKey, function (err, addressPath) {
     if (err) return callback(err)
     if (!addressPath) return callback('Addresss ' + address + ' privateKey not found.')
@@ -267,13 +267,12 @@ HDWallet.prototype.discover = function (callback) {
             if (isActive) {
               self.setNextAccount(currentAccount + 1)
               emptyAccounts = 0
-            }
-            else {
+            } else {
               emptyAccounts++
             }
             currentAccount++
           })
-        cb()
+          cb()
         })
       },
       function (err) {
@@ -308,13 +307,12 @@ HDWallet.prototype.discoverAccount = function (accountIndex, callback) {
               self.setNextAccountAddress(accountIndex, currentAddress + 1)
               emptyAddresses = 0
               active = true
-            }
-            else {
+            } else {
               emptyAddresses++
             }
             currentAddress++
           })
-        cb()
+          cb()
         })
       },
       function (err) {
