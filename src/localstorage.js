@@ -4,20 +4,18 @@ function LocalStorage () {}
 
 LocalStorage.prototype.get = function (key) {
   var value = localStorage.getItem(key)
-  if (typeof value === 'string')
   try {
-  	value = JSON.parse(value)
-  }
-  catch (e) {
-  	// no an object...
+    value = JSON.parse(value)
+  } catch (e) {
+    // not an object...
   }
   return value
 }
 
 LocalStorage.prototype.set = function (key, value) {
-	if (typeof value === 'object') {
-		value = JSON.stringify(value)
-	}
+  if (typeof value === 'object') {
+    value = JSON.stringify(value)
+  }
   return localStorage.setItem(key, value)
 }
 
@@ -38,8 +36,8 @@ LocalStorage.prototype.hset = function (key, hash, value, callback) {
   value = value || null
   var hvalue = this.get(key)
   if (!hvalue) {
-  	// this.set(key, {})
-  	hvalue = {}
+    // this.set(key, {})
+    hvalue = {}
   }
   if (typeof hvalue !== 'object') return callback('Key ' + key + ' is set but not an object.')
   hvalue[hash] = value
