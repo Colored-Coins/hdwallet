@@ -22,7 +22,7 @@ LocalStorage.prototype.set = function (key, value) {
 LocalStorage.prototype.hget = function (key, hash) {
   if (key && hash) {
     var hvalue = this.get(key)
-    if (typeof hvalue === 'object') {
+    if (hvalue && typeof hvalue === 'object') {
       return hvalue[hash]
     }
   }
@@ -48,7 +48,7 @@ LocalStorage.prototype.hset = function (key, hash, value, callback) {
 LocalStorage.prototype.hkeys = function (key) {
   if (key) {
     var hvalue = this.get(key)
-    if (typeof hvalue === 'object') {
+    if (hvalue && typeof hvalue === 'object') {
       return Object.keys(hvalue)
     } else {
       return null
