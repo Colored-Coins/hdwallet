@@ -1,4 +1,4 @@
-var HDWallet = require(__dirname + '/../src/hdwallet.js')
+var HDWallet = require('..')
 var assert = require('assert')
 var expect = require('chai').expect
 var bitcoin = require('bitcoinjs-lib')
@@ -34,7 +34,7 @@ describe('Test hdwallet', function () {
   // })
 
   it('Should save the private key of an address', function (done) {
-    this.timeout(30000)
+    this.timeout(60000)
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
     hdwallet.on('connect', function () {
       hdwallet.getAddressPrivateKey(address, function (err, priv) {
@@ -48,7 +48,7 @@ describe('Test hdwallet', function () {
   })
 
   it('Should get the addresses of the wallet', function (done) {
-    this.timeout(30000)
+    this.timeout(60000)
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
     hdwallet.on('connect', function () {
       hdwallet.getAddresses(function (err, addresses) {
