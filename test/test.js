@@ -4,7 +4,7 @@ var expect = require('chai').expect
 var bitcoin = require('bitcoinjs-lib')
 
 var privateSeed = 'ff92aaece15f7b179796f0b849ca69a869f1f043a45b1e4ba821f20db25a52c8'
-var priv = 'cQ176k8LDck5aNJTQcXd7G4rCqGM3jhJyZ7MNawyzAfaWuVpP5Xb'
+// var priv = 'cQ176k8LDck5aNJTQcXd7G4rCqGM3jhJyZ7MNawyzAfaWuVpP5Xb'
 var address = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
 
 describe('Test hdwallet', function () {
@@ -17,7 +17,6 @@ describe('Test hdwallet', function () {
   })
 
   it('Should load the same privateSeed.', function (done) {
-    
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
     var hdSeed = hdwallet.getPrivateSeed()
     assert.equal(hdSeed, privateSeed, 'Seeds should be the same.')
@@ -45,6 +44,21 @@ describe('Test hdwallet', function () {
       })
     })
     hdwallet.init()
+  })
+
+  it('Should encrypt/decrypt Private Key', function (done) {
+    this.timeout(0)
+    var priv = 'L3zi6uFfZvAdgkicnyW2twfaEGcrJSk2NLjJhA5R7C4TcSq7U29d'
+    var encryptedPrivateKey = HDWallet.encryptPrivateKey(priv, '123')
+    assert.equal(HDWallet.decryptPrivateKey(encryptedPrivateKey, '123'), priv, 'Should decrypt correctly')
+    done()
+  })
+
+  it('Should create a new Private Key', function (done) {
+    this.timeout(30000)
+    HDWallet.createNewKey()
+    HDWallet.createNewKey(null, '123')
+    done()
   })
 
   it('Should get the addresses of the wallet', function (done) {

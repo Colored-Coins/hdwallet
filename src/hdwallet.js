@@ -6,6 +6,11 @@ var request = require('request')
 var bitcoin = require('bitcoinjs-lib')
 var crypto = require('crypto')
 var redis = require('redis')
+var CoinKey = require('coinkey')
+var Bip38 = require('bip38')
+var cs = require('coinstring')
+var hash = require('crypto-hashing')
+var crypto = require('crypto')
 var FileSystem
 
 if (typeof window === 'undefined') {
@@ -16,7 +21,6 @@ if (typeof window === 'undefined') {
 
 var MAX_EMPTY_ACCOUNTS = 3
 var MAX_EMPTY_ADDRESSES = 3
-var ASKING_INTERVAL = 4
 
 var mainnetColuHost = 'https://engine.colu.co'
 var testnetColuHost = 'https://testnet.engine.colu.co'
@@ -35,6 +39,14 @@ var HDWallet = function (settings) {
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
   var privateSeed = settings.privateSeed || null
+  if (settings.privateKey) {
+    var privateWif = settings.privateKey
+    if (!Buffer.isBuffer(privateWif)) {
+      privateWif = new Buffer(privateWif, 'hex')
+    }
+    privateSeed = crypto.createHash('sha256').update(privateWif).digest()
+    privateSeed = crypto.createHash('sha256').update(privateSeed).digest()
+  }
   if (!privateSeed) {
     self.privateSeed = crypto.randomBytes(32)
     self.needToDiscover = false
@@ -47,6 +59,60 @@ var HDWallet = function (settings) {
 }
 
 util.inherits(HDWallet, events.EventEmitter)
+
+HDWallet.encryptPrivateKey = function (privateWif, password, progressCallback) {
+  var key = CoinKey.fromWif(privateWif)
+  var bip38 = new Bip38()
+  return bip38.encrypt(key.privateWif, password, key.publicAddress, progressCallback)
+}
+
+HDWallet.decryptPrivateKey = function (encryptedPrivKey, password, progressCallback) {
+  var bip38 = new Bip38()
+  var decrypedPrivKey = bip38.decrypt(encryptedPrivKey, password, progressCallback)
+  var decryptedAddress = new CoinKey.fromWif(decrypedPrivKey).publicAddress
+
+  var checksum = hash.sha256(hash.sha256(decryptedAddress))
+  var hex = cs.decode(encryptedPrivKey)
+  console.log(decrypedPrivKey)
+  if (
+     checksum[0] === hex[3] &&
+     checksum[1] === hex[4] &&
+     checksum[2] === hex[5] &&
+     checksum[3] === hex[6]
+    ) {
+    return decrypedPrivKey
+  }
+  return false
+}
+
+HDWallet.createNewKey = function (network, pass, progressCallback) {
+  if (typeof network === 'function') {
+    progressCallback = network
+    network = null
+  }
+  if (typeof pass === 'function') {
+    progressCallback = pass
+    pass = null
+  }
+  var key = CoinKey.createRandom()
+  var privateKey = key.privateWif
+  var buffer = new Buffer(privateKey)
+  var privateSeed = crypto.createHash('sha256').update(buffer).digest()
+  privateSeed = crypto.createHash('sha256').update(privateSeed).digest()
+  privateSeed = new Buffer(privateSeed, 'hex')
+  network = 'testnet' ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  var master = bitcoin.HDNode.fromSeedHex(privateSeed, network)
+  var extendedKey = deriveAccount(master, 0).toBase58(false)
+  var answer = {
+    privateKey: privateKey,
+    extendedPublicKey: extendedKey
+  }
+  if (pass) {
+    delete answer.privateKey
+    answer.encryptedPrivateKey = HDWallet.encryptPrivateKey(privateKey, pass, progressCallback)
+  }
+  return answer
+}
 
 HDWallet.prototype.init = function (cb) {
   var self = this
@@ -404,6 +470,16 @@ HDWallet.prototype.isAddressActive = function (addresses, callback) {
 }
 
 var deriveAddress = function (master, accountIndex, addressIndex) {
+  var node = deriveAccount(master, accountIndex)
+
+  node = node.derive(0)
+  // address_index
+  node = node.derive(addressIndex)
+
+  return node
+}
+
+var deriveAccount = function (master, accountIndex) {
   var node = master
   // BIP0044:
   // purpose'
@@ -412,10 +488,6 @@ var deriveAddress = function (master, accountIndex, addressIndex) {
   node = node.deriveHardened(0)
   // account'
   node = node.deriveHardened(accountIndex)
-  // change
-  node = node.derive(0)
-  // address_index
-  node = node.derive(addressIndex)
 
   return node
 }
