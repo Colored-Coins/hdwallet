@@ -1,6 +1,6 @@
 {
   "name": "hdwallet",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "BIP44 wallet",
   "main": "src/hdwallet.js",
   "dependencies": {
@@ -11,6 +11,7 @@
     "coinstring": "^2.3.0",
     "crypto": "0.0.3",
     "crypto-hashing": "^0.3.1",
+    "data-storage": "0.0.2",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "path-extra": "^1.0.3",

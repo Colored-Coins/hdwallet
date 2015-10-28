@@ -5,19 +5,13 @@ var events = require('events')
 var request = require('request')
 var bitcoin = require('bitcoinjs-lib')
 var crypto = require('crypto')
-var redis = require('redis')
 var CoinKey = require('coinkey')
 var Bip38 = require('bip38')
 var cs = require('coinstring')
 var hash = require('crypto-hashing')
 var crypto = require('crypto')
-var FileSystem
 
-if (typeof window === 'undefined') {
-  FileSystem = require('./filesystem.js')
-} else {
-  FileSystem = require('./localstorage.js')
-}
+var DataStorage = require('data-storage')
 
 var MAX_EMPTY_ACCOUNTS = 3
 var MAX_EMPTY_ADDRESSES = 3
@@ -56,6 +50,9 @@ var HDWallet = function (settings) {
   }
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
   self.nextAccount = 0
+  if (settings.ds) {
+    self.ds = settings.ds
+  }
 }
 
 util.inherits(HDWallet, events.EventEmitter)
@@ -116,26 +113,24 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
 
 HDWallet.prototype.init = function (cb) {
   var self = this
-  var end = function () {
-    self.hasRedis = false
-    self.fs = new FileSystem()
-    return self.afterRedisInit(cb)
+  
+  if (self.ds) {
+    self.afterDSInit(cb)
   }
-  if (typeof window !== 'undefined') return end()
-  self.redisClient = redis.createClient(self.redisPort, self.redisHost)
-  self.redisClient.on('error', function (err) {
-    if (err) console.error('Redis err: ' + err)
-    self.redisClient.end()
-    end()
-  })
-  self.redisClient.on('connect', function () {
-    // console.log('redis connected!')
-    self.hasRedis = true
-    self.afterRedisInit(cb)
-  })
+  else {
+    var settings = {
+      redisPort: self.redisPort,
+      redisHost: self.redisHost
+    }
+    self.ds = new DataStorage(settings)
+    self.ds.once('connect', function () {
+      self.afterDSInit(cb)
+    })
+    self.ds.init()
+  }
 }
 
-HDWallet.prototype.afterRedisInit = function (cb) {
+HDWallet.prototype.afterDSInit = function (cb) {
   var self = this
   if (self.needToDiscover) {
     self.discover(function (err) {
@@ -164,39 +159,21 @@ HDWallet.prototype.setDB = function (key, value) {
   var self = this
 
   var seedKey = self.getKeyPrefix()
-  if (self.hasRedis) {
-    self.redisClient.hset(seedKey, key, value)
-  } else {
-    if (self.fs) {
-      self.fs.hset(seedKey, key, value)
-    }
-  }
+  self.ds.hset(seedKey, key, value)
 }
 
 HDWallet.prototype.getDB = function (key, callback) {
   var self = this
 
   var seedKey = self.getKeyPrefix()
-  if (self.hasRedis) {
-    return self.redisClient.hget(seedKey, key, callback)
-  } else if (self.fs) {
-    return callback(null, self.fs.hget(seedKey, key))
-  } else {
-    return callback('Key ' + key + ' not found.')
-  }
+  return self.ds.hget(seedKey, key, callback)
 }
 
 HDWallet.prototype.getKeys = function (callback) {
   var self = this
 
   var seedKey = self.getKeyPrefix()
-  if (self.hasRedis) {
-    return self.redisClient.hkeys(seedKey, callback)
-  } else if (self.fs) {
-    return callback(null, self.fs.hkeys(seedKey))
-  } else {
-    return callback('Keys not found.')
-  }
+  return self.ds.hkeys(seedKey, callback)
 }
 
 HDWallet.prototype.getAddresses = function (callback) {
