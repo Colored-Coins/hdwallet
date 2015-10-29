@@ -23,14 +23,14 @@ describe('Test hdwallet', function () {
     done()
   })
 
-  // it('Should init.', function (done) {
-  //  this.timeout(30000)
-  //  var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
-  //  hdwallet.on('connect', function() {
-  //    done()
-  //  })
-  //  hdwallet.init()
-  // })
+  it('Should init.', function (done) {
+    this.timeout(30000)
+    var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
+    hdwallet.on('connect', function () {
+      done()
+    })
+    hdwallet.init()
+  })
 
   it('Should save the private key of an address', function (done) {
     this.timeout(60000)
@@ -53,10 +53,42 @@ describe('Test hdwallet', function () {
     done()
   })
 
-  it('Should create a new Private Key', function (done) {
-    this.timeout(30000)
-    HDWallet.createNewKey()
-    HDWallet.createNewKey(null, '123')
+  it('Should create a new mainnet Private Key', function (done) {
+    this.timeout(120000)
+    var key = HDWallet.createNewKey()
+    var hdwallet = new HDWallet({privateKey: key.privateKey})
+    hdwallet.on('connect', function () {
+      hdwallet.getAddresses(function (err, addresses) {
+        assert.ifError(err)
+        // console.log('addresses:', addresses)
+        expect(addresses).to.be.a('array')
+        expect(addresses).to.have.length.above(0)
+        done()
+      })
+    })
+    hdwallet.init()
+  })
+
+  it('Should create a new testnet Private Key', function (done) {
+    this.timeout(120000)
+    var key = HDWallet.createNewKey('testnet')
+    var hdwallet = new HDWallet({network: 'testnet', privateKey: key.privateKey})
+    hdwallet.on('connect', function () {
+      hdwallet.getAddresses(function (err, addresses) {
+        assert.ifError(err)
+        // console.log('addresses:', addresses)
+        expect(addresses).to.be.a('array')
+        expect(addresses).to.have.length.above(0)
+        done()
+      })
+    })
+    hdwallet.init()
+  })
+
+  it('Should create a new encrypted Private Key', function (done) {
+    this.timeout(120000)
+    var key = HDWallet.createNewKey(null, '123')
+    assert(key.encryptedPrivateKey, 'Should generate and encrypted key')
     done()
   })
 
