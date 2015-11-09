@@ -6,7 +6,7 @@
   "dependencies": {
     "async": "^1.3.0",
     "bip38": "1.4.0",
-    "bitcoinjs-lib": "git+https://git@github.com/Colu-platform/bitcoinjs-lib.git#1.5.x",
+    "bitcoinjs-lib": "~1.5.8",
     "coinkey": "^1.4.0",
     "coinstring": "^2.3.0",
     "crypto": "0.0.3",
