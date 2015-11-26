@@ -470,7 +470,7 @@ var deriveAccount = function (master, accountIndex) {
 
 var doubleSha256 = function (message) {
   var sha = crypto.createHash('sha256').update(message).digest()
-  sha = crypto.createHash('sha256').update(sha).digest()
+  sha = crypto.createHash('sha256').update(sha).digest('hex')
   return sha
 }
 
