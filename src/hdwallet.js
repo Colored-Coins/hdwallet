@@ -140,6 +140,7 @@ HDWallet.prototype.afterDSInit = function (cb) {
       if (cb) cb(null, self)
     })
   } else {
+    self.registerAccount(0)
     self.emit('connect')
     if (cb) return cb(null, self)
   }
@@ -235,6 +236,7 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
   change = (change) ? 1 : 0
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
   self.setDB(addressKey, addressValue)
+  self.emit('registerAddress', address)
 }
 
 HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
