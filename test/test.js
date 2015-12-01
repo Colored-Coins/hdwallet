@@ -4,6 +4,7 @@ var assert = require('chai').assert
 var bitcoin = require('bitcoinjs-lib')
 
 var privateSeed = 'ff92aaece15f7b179796f0b849ca69a869f1f043a45b1e4ba821f20db25a52c8'
+var privateKey = 'cW9W4z8UHiypm2nmvsZmwMEcpdW95GNbbRXwJJNrwBKFMzBJbzR1'
 // var priv = 'cQ176k8LDck5aNJTQcXd7G4rCqGM3jhJyZ7MNawyzAfaWuVpP5Xb'
 var address = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
 
@@ -18,6 +19,13 @@ describe('Test hdwallet', function () {
 
   it('Should load the same privateSeed.', function (done) {
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
+    var hdSeed = hdwallet.getPrivateSeed()
+    assert.equal(hdSeed, privateSeed, 'Seeds should be the same.')
+    done()
+  })
+
+  it('Should load the same privateSeed from private key.', function (done) {
+    var hdwallet = new HDWallet({network: 'testnet', privateKey: privateKey})
     var hdSeed = hdwallet.getPrivateSeed()
     assert.equal(hdSeed, privateSeed, 'Seeds should be the same.')
     done()

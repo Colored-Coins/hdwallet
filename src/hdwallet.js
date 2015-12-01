@@ -32,21 +32,20 @@ var HDWallet = function (settings) {
   }
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
-  var privateSeed = settings.privateSeed || null
-  if (settings.privateKey) {
-    self.masterPrivateKey = settings.privateKey
-    privateSeed = settings.privateKey
-    if (!Buffer.isBuffer(privateSeed)) {
-      privateSeed = new Buffer(privateSeed)
-    }
-    privateSeed = crypto.createHash('sha256').update(privateSeed).digest()
-    privateSeed = crypto.createHash('sha256').update(privateSeed).digest('hex')
+  if (settings.privateSeed && settings.privateKey) {
+    throw new Error('Can\'t have both privateSeed and privateKey.')
   }
-  if (!privateSeed) {
+  self.privateSeed = settings.privateSeed || null
+  if (settings.privateKey) {
+    var privateKeyBigInt = bitcoin.ECKey.fromWIF(settings.privateKey, self.network).d
+    self.privateSeed = privateKeyBigInt.toHex(32)
+
+  }
+  if (!self.privateSeed) {
     self.privateSeed = crypto.randomBytes(32)
     self.needToDiscover = false
   } else {
-    self.privateSeed = new Buffer(privateSeed, 'hex')
+    self.privateSeed = new Buffer(self.privateSeed, 'hex')
     self.needToDiscover = true
   }
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
@@ -94,9 +93,7 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
   network = (network === 'testnet' ? bitcoin.networks.testnet : bitcoin.networks.bitcoin)
   var key = bitcoin.ECKey.makeRandom()
   var privateKey = key.toWIF(network)
-  var buffer = new Buffer(privateKey)
-  var privateSeed = crypto.createHash('sha256').update(buffer).digest()
-  privateSeed = crypto.createHash('sha256').update(privateSeed).digest('hex')
+  var privateSeed = key.d.toHex(32)
   var master = bitcoin.HDNode.fromSeedHex(privateSeed, network)
   var extendedKey = deriveAccount(master, 0).toBase58(false)
   var answer = {
