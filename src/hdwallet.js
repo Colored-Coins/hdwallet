@@ -10,6 +10,7 @@ var Bip38 = require('bip38')
 var cs = require('coinstring')
 var hash = require('crypto-hashing')
 var crypto = require('crypto')
+var BigInteger = require('bigi')
 
 var DataStorage = require('data-storage')
 
@@ -78,7 +79,7 @@ HDWallet.encryptPrivateKey = function (privateWif, password, progressCallback) {
 
 HDWallet.decryptPrivateKey = function (encryptedPrivKey, password, network, progressCallback) {
   var bip38 = new Bip38()
-  
+
   if (typeof network === 'function') {
     progressCallback = network
     network = null
@@ -424,6 +425,12 @@ HDWallet.prototype.registerAccount = function (account) {
 
 HDWallet.prototype.getPrivateSeed = function () {
   return this.privateSeed.toString('hex')
+}
+
+HDWallet.prototype.getPrivateSeedWIF = function () {
+  var d = BigInteger.fromBuffer(this.privateSeed)
+  var priv = new bitcoin.ECKey(d, true)
+  return priv.toWIF(this.network)
 }
 
 HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
