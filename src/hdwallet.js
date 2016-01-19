@@ -272,8 +272,7 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
 HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
   var self = this
 
-  var addressKey = 'address/' + address
-  self.getAddressPath(addressKey, function (err, addressPath) {
+  self.getAddressPath(address, function (err, addressPath) {
     if (err) return callback(err)
     if (!addressPath) return callback('Addresss ' + address + ' privateKey not found.')
     var path = addressPath.split('/')
@@ -313,7 +312,8 @@ HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
 }
 
 HDWallet.prototype.getAddressPath = function (address, callback) {
-  this.getDB(address, callback)
+  var addressKey = 'address/' + address
+  this.getDB(addressKey, callback)
 }
 
 HDWallet.prototype.discover = function (callback) {
