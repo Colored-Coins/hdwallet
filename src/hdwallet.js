@@ -307,6 +307,9 @@ HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
       }
     })
     var privateKey = node.privKey
+    privateKey.getFormattedValue = function() {
+      return this.toWIF(self.network)
+    }
     callback(null, privateKey)
   })
 }
@@ -444,6 +447,9 @@ HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
   addressIndex = addressIndex || 0
   var hdnode = deriveAddress(self.master, account, addressIndex)
   var privateKey = hdnode.privKey
+  privateKey.getFormattedValue = function() {
+    return this.toWIF(self.network)
+  }
   return privateKey
 }
 
@@ -452,6 +458,7 @@ HDWallet.prototype.getPublicKey = function (account, addressIndex) {
 
   var privateKey = self.getPrivateKey(account, addressIndex)
   var publicKey = privateKey.pub
+  publicKey.getFormattedValue = publicKey.toHex
 
   return publicKey
 }
