@@ -176,6 +176,12 @@ HDWallet.prototype.afterDSInit = function (cb) {
   }
 }
 
+HDWallet.prototype.getAccount = function (index) {
+  index = index || 0
+  var extendedKey = deriveAccount(this.master, index).toBase58(false)
+  return extendedKey
+}
+
 HDWallet.prototype.getKeyPrefix = function () {
   var self = this
 

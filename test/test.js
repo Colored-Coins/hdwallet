@@ -1,6 +1,8 @@
 var HDWallet = require('..')
-var expect = require('chai').expect
-var assert = require('chai').assert
+var chai = require('chai')
+chai.use(require('chai-string'))
+expect = chai.expect
+assert = chai.assert
 var bitcoin = require('bitcoinjs-lib')
 
 var privateSeed = 'ff92aaece15f7b179796f0b849ca69a869f1f043a45b1e4ba821f20db25a52c8'
@@ -97,6 +99,32 @@ describe('Test hdwallet', function () {
     var key = HDWallet.createNewKey(null, '123')
     assert(key.encryptedPrivateKey, 'Should generate and encrypted key')
     done()
+  })
+
+  it('Should create a get zero account (mainnet)', function (done) {
+    this.timeout(120000)
+    var key = HDWallet.createNewKey()
+    var hdwallet = new HDWallet({privateSeedWIF: key.privateKey})
+    hdwallet.on('connect', function () {
+      var extendedKey = hdwallet.getAccount(0)
+      expect(extendedKey).to.startsWith('xpub')
+      assert.equal(extendedKey, key.extendedPublicKey, 'Should return the same extended public key')
+      done()
+    })
+    hdwallet.init()
+  })
+
+  it('Should create a get zero account (testnet)', function (done) {
+    this.timeout(120000)
+    var key = HDWallet.createNewKey('testnet')
+    var hdwallet = new HDWallet({network: 'testnet', privateSeedWIF: key.privateKey})
+    hdwallet.on('connect', function () {
+      var extendedKey = hdwallet.getAccount(0)
+      expect(extendedKey).to.startsWith('tpub')
+      assert.equal(extendedKey, key.extendedPublicKey, 'Should return the same extended public key')
+      done()
+    })
+    hdwallet.init()
   })
 
   it('Should get the addresses of the wallet', function (done) {
