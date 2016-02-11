@@ -36,6 +36,16 @@ var HDWallet = function (settings) {
   if (settings.privateSeed && (settings.privateKey || settings.privateSeedWIF)) {
     throw new Error('Can\'t have both privateSeed and privateKey/privateSeedWIF.')
   }
+  if (settings.oldPrivateSeed || settings.oldPrivateSeedWIF) {
+    var oldSeed = settings.oldPrivateSeed || settings.oldPrivateSeedWIF
+    oldSeed = crypto.createHash('sha256').update(oldSeed).digest()
+    oldSeed = crypto.createHash('sha256').update(oldSeed).digest('hex')
+    if (settings.oldPrivateSeed) {
+      settings.privateSeed = oldSeed
+    } else {
+      settings.privateSeedWIF = oldSeed
+    }
+  }
   if (settings.privateKey && settings.privateSeedWIF && settings.privateKey !== settings.privateSeedWIF) {
     throw new Error('Can\'t privateKey and privateSeedWIF should be the same (can use only one).')
   }
