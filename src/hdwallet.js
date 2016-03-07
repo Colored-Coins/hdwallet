@@ -70,6 +70,7 @@ var HDWallet = function (settings) {
   }
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
   self.nextAccount = 0
+  self.addresses = []
   if (settings.ds) {
     self.ds = settings.ds
   }
@@ -180,7 +181,6 @@ HDWallet.prototype.afterDSInit = function (cb) {
       if (cb) cb(null, self)
     })
   } else {
-    self.registerAccount(0)
     self.emit('connect')
     if (cb) return cb(null, self)
   }
@@ -222,7 +222,6 @@ HDWallet.prototype.getKeys = function (callback) {
 
 HDWallet.prototype.getAddresses = function (callback) {
   var self = this
-
   self.getKeys(function (err, keys) {
     if (err) return callback(err)
     var addresses = []
@@ -236,51 +235,13 @@ HDWallet.prototype.getAddresses = function (callback) {
   })
 }
 
-HDWallet.prototype.getNextAccount = function (callback) {
-  var self = this
-
-  var coluSdkNextAccount = 'coluSdkNextAccount'
-  self.getDB(coluSdkNextAccount, function (err, nextAccount) {
-    if (err) return callback(err)
-    nextAccount = nextAccount || 0
-    return callback(null, parseInt(nextAccount, 10))
-  })
-}
-
-HDWallet.prototype.getNextAccountAddress = function (accountIndex, callback) {
-  var self = this
-
-  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/' + accountIndex
-  self.getDB(coluSdkNextAccountAddress, function (err, nextAccountAddress) {
-    if (err) return callback(err)
-    nextAccountAddress = nextAccountAddress || 0
-    return callback(null, parseInt(nextAccountAddress, 10))
-  })
-}
-
-HDWallet.prototype.setNextAccount = function (nextAccount) {
-  var self = this
-
-  var coluSdkNextAccount = 'coluSdkNextAccount'
-  self.nextAccount = nextAccount
-  self.setDB(coluSdkNextAccount, self.nextAccount)
-}
-
-HDWallet.prototype.setNextAccountAddress = function (accountIndex, nextAccountAddress) {
-  var self = this
-
-  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/' + accountIndex
-  self.setDB(coluSdkNextAccountAddress, nextAccountAddress)
-}
-
 HDWallet.prototype.registerAddress = function (address, accountIndex, addressIndex, change) {
   var self = this
-
-  // console.log('registering '+address)
 
   var addressKey = 'address/' + address
   change = (change) ? 1 : 0
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
+  // console.log('registering', address, addressValue)
   self.setDB(addressKey, addressValue)
   self.emit('registerAddress', address)
 }
@@ -337,109 +298,125 @@ HDWallet.prototype.getAddressPath = function (address, callback) {
 
 HDWallet.prototype.discover = function (callback) {
   var self = this
-
-  self.getNextAccount(function (err, nextAccount) {
+  self.calcCurrentFringe(function (err, fringe) {
     if (err) return callback(err)
-    self.nextAccount = nextAccount || 0
-    var emptyAccounts = 0
-    var currentAccount = nextAccount || 0
-
-    async.whilst(
-      function () { return emptyAccounts < MAX_EMPTY_ACCOUNTS },
-      function (cb) {
-        async.times(MAX_EMPTY_ACCOUNTS - emptyAccounts, function (accountIndexDelata, cb) {
-          var accountIndex = currentAccount + accountIndexDelata
-          // console.log('discovering account '+accountIndex)
-          self.discoverAccount(accountIndex, cb)
-        },
-        function (err, actives) {
-          if (err) return callback(err)
-          actives.forEach(function (isActive) {
-            if (isActive) {
-              self.setNextAccount(currentAccount + 1)
-              emptyAccounts = 0
-            } else {
-              emptyAccounts++
-            }
-            currentAccount++
-          })
-          cb()
-        })
-      },
-      function (err) {
-        if (err) return callback(err)
-        self.needToDiscover = false
-        callback()
+    // register tree addresses
+    fringe.forEach(function (account, i) {
+      for (var j = 0; j < account.nextUnused; j++) {
+        self.getAddress(i, j) // will register the address
       }
+    })
+    var allScaned = false
+    // scan fringe
+    async.whilst(function () { return !allScaned },
+      function (cb) {
+        var fringeAddresses
+        async.waterfall([
+          function (cb) {
+            // console.log('fringe:', JSON.stringify(fringe))
+            fringeAddresses = self.getFringeAddresses(fringe)
+            // console.log('fringeAddresses:', JSON.stringify(fringeAddresses))
+            var addresses = Object.keys(fringeAddresses)
+            self.isAddressActive(addresses, cb)
+          },
+          function (discoveredAddresses, cb) {
+            allScaned = self.calcNextFringe(fringe, fringeAddresses, discoveredAddresses)
+            if (allScaned) {
+              self.saveFrienge(fringe)
+              self.needToDiscover = false
+            }
+            cb()
+          }
+        ], cb)
+      },
+      callback
     )
   })
 }
 
-HDWallet.prototype.discoverAccount = function (accountIndex, callback) {
+HDWallet.prototype.calcCurrentFringe = function (callback) {
   var self = this
 
-  self.getNextAccountAddress(accountIndex, function (err, nextAccountAddress) {
+  self.getDB('coluSdkfringe', function (err, fringe) {
     if (err) return callback(err)
-    var emptyAddresses = 0
-    var currentAddress = nextAccountAddress || 0
-    var active = false
-
-    async.whilst(
-      function () { return emptyAddresses < MAX_EMPTY_ADDRESSES },
-      function (cb) {
-        async.times(MAX_EMPTY_ADDRESSES - emptyAddresses, function (addressIndexDelata, cb) {
-          var addressIndex = currentAddress + addressIndexDelata
-          self.discoverAddress(accountIndex, addressIndex, cb)
-        },
-        function (err, addresses) {
-          if (err) return callback(err)
-          addresses.forEach(function (address) {
-            if (address && address.length && address[0].active) {
-              self.setNextAccountAddress(accountIndex, currentAddress + 1)
-              emptyAddresses = 0
-              active = true
-            } else {
-              emptyAddresses++
-            }
-            currentAddress++
-          })
-          cb()
-        })
-      },
-      function (err) {
-        if (err) return callback(err)
-        callback(null, active)
-      }
-    )
+    fringe = fringe || '[]'
+    fringe = JSON.parse(fringe)
+    fringe = fringe.map(function (nextUnused) {
+      return {nextUnused: nextUnused, nextUnknown: nextUnused}
+    })
+    return callback(null, fringe)
   })
 }
 
-HDWallet.prototype.discoverAddress = function (accountIndex, addressIndex, interval, callback) {
+HDWallet.prototype.saveFrienge = function (fringe) {
   var self = this
 
-  var addresses = []
-  if (typeof interval === 'function') {
-    callback = interval
-    interval = 1
-  }
-  for (var i = 0; i < interval; i++) {
-    var hdnode = deriveAddress(self.master, accountIndex, addressIndex++)
-    var address = hdnode.getAddress().toString()
-    self.registerAddress(address, accountIndex, addressIndex - 1)
-    addresses.push(address)
-    // console.log('discovering address: ' + address)
-  }
-  self.isAddressActive(addresses, callback)
+  var cachedFringe = fringe.map(function (account) {
+    return account.nextUnused
+  })
+  cachedFringe = JSON.stringify(cachedFringe)
+  self.setDB('coluSdkfringe', cachedFringe)
 }
 
-HDWallet.prototype.registerAccount = function (account) {
+HDWallet.prototype.getFringeAddresses = function (fringe) {
   var self = this
 
-  for (var i = 0; i < MAX_EMPTY_ADDRESSES; i++) {
-    var hdnode = deriveAddress(self.master, account, i)
-    var address = hdnode.getAddress().toString()
-    self.registerAddress(address, account, i)
+  var numOfEmptyAccounts = 0
+  var currentAccount = 0
+  var fringeAddresses = {}
+  fringe.forEach(function (account) {
+    if (account.nextUnused) {
+      numOfEmptyAccounts = 0
+    } else {
+      numOfEmptyAccounts++
+    }
+    for (var i = account.nextUnknown; i < account.nextUnused + MAX_EMPTY_ADDRESSES; i++) {
+      var address = self.getAddress(currentAccount, i)
+      fringeAddresses[address] = {
+        account: currentAccount,
+        address: i
+      }
+    }
+    currentAccount++
+  })
+  for (var j = 0; j < MAX_EMPTY_ACCOUNTS - numOfEmptyAccounts; j++) {
+    fringe.push({nextUnused: 0, nextUnknown: 0})
+    for (var i = 0; i < MAX_EMPTY_ADDRESSES; i++) {
+      var address = self.getAddress(currentAccount, i)
+      fringeAddresses[address] = {
+        account: currentAccount,
+        address: i
+      }
+    }
+    currentAccount++
   }
+  return fringeAddresses
+}
+
+HDWallet.prototype.calcNextFringe = function (fringe, fringeAddresses, discoveredAddresses) {
+  var self = this
+  discoveredAddresses.forEach(function (discoveredAddress) {
+    var fringeAddress = fringeAddresses[discoveredAddress.address]
+    if (!fringeAddress) return
+    var account = fringe[fringeAddress.account]
+    if (!account) return
+    if (discoveredAddress.active) {
+      account.nextUnused = Math.max(fringeAddress.address + 1, account.nextUnused)
+    }
+    account.nextUnknown = Math.max(fringeAddress.address + 1, account.nextUnknown)
+  })
+  var allScaned = true
+  var numOfEmptyAccounts = 0
+  fringe.forEach(function (account, i) {
+    if (account.nextUnknown - account.nextUnused < MAX_EMPTY_ADDRESSES) allScaned = false
+    if (account.nextUnused == 0) {
+      numOfEmptyAccounts++
+    } else {
+      numOfEmptyAccounts = 0
+      self.nextAccount = Math.max(i + 1, self.nextAccount)
+    }
+  })
+  return allScaned && numOfEmptyAccounts >= MAX_EMPTY_ACCOUNTS
 }
 
 HDWallet.prototype.getPrivateSeed = function () {
@@ -457,8 +434,6 @@ HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
 
   if (typeof account === 'undefined') {
     account = self.nextAccount++
-    self.setNextAccount(self.nextAccount)
-    self.registerAccount(account)
   }
   addressIndex = addressIndex || 0
   var hdnode = deriveAddress(self.master, account, addressIndex)
@@ -466,6 +441,8 @@ HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
   privateKey.getFormattedValue = function() {
     return this.toWIF(self.network)
   }
+  var address = privateKey.pub.getAddress(self.network).toString()
+  self.registerAddress(address, account, addressIndex)
   return privateKey
 }
 
@@ -481,8 +458,17 @@ HDWallet.prototype.getPublicKey = function (account, addressIndex) {
 
 HDWallet.prototype.getAddress = function (account, addressIndex) {
   var self = this
-
-  return self.getPublicKey(account, addressIndex).getAddress(self.network).toString()
+  var address = typeof account !== 'undefined' && typeof accaddressIndexount !== 'undefined' && self.addresses[account] && self.addresses[account][addressIndex]
+  if (!address) {
+    address = self.getPublicKey(account, addressIndex).getAddress(self.network).toString()
+    if (typeof account === 'undefined') {
+      account = self.nextAccount
+    }
+    addressIndex = addressIndex || 0
+    self.addresses[account] = self.addresses[account] || []
+    self.addresses[account][addressIndex] = address
+  }
+  return address
 }
 
 HDWallet.prototype.isAddressActive = function (addresses, callback) {
