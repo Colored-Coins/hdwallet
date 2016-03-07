@@ -1,0 +1,39 @@
+{
+  "version": "v4",
+  "repo": "borisyankov/DefinitelyTyped",
+  "ref": "master",
+  "path": "typings",
+  "bundle": "typings/tsd.d.ts",
+  "installed": {
+    "async/async.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "redis/redis.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "node/node.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "mocha/mocha.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "chai/chai.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "assertion-error/assertion-error.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "chai-string/chai-string.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "request/request.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "form-data/form-data.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "mkpath/mkpath.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    }
+  }
+}
