@@ -297,6 +297,7 @@ HDWallet.prototype.getAddressPath = function (address, callback) {
 }
 
 HDWallet.prototype.discover = function (callback) {
+  callback = callback || function () {}
   var self = this
   self.calcCurrentFringe(function (err, fringe) {
     if (err) return callback(err)
