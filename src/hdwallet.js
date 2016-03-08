@@ -71,6 +71,7 @@ var HDWallet = function (settings) {
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
   self.nextAccount = 0
   self.addresses = []
+  self.discovering = false
   if (settings.ds) {
     self.ds = settings.ds
   }
@@ -243,6 +244,8 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
   // console.log('registering', address, addressValue)
   self.setDB(addressKey, addressValue)
+  self.addresses[accountIndex] = self.addresses[accountIndex] || []
+  self.addresses[accountIndex][addressIndex] = address
   self.emit('registerAddress', address)
 }
 
@@ -299,7 +302,9 @@ HDWallet.prototype.getAddressPath = function (address, callback) {
 HDWallet.prototype.discover = function (callback) {
   callback = callback || function () {}
   var self = this
-  self.calcCurrentFringe(function (err, fringe) {
+  if (self.discovering == false) return callback()
+  self.discovering = true
+  return self.calcCurrentFringe(function (err, fringe) {
     if (err) return callback(err)
     // register tree addresses
     fringe.forEach(function (account, i) {
@@ -330,7 +335,10 @@ HDWallet.prototype.discover = function (callback) {
           }
         ], cb)
       },
-      callback
+      function (err) {
+        self.discovering = false
+        callback(err)
+      }
     )
   })
 }
@@ -459,7 +467,7 @@ HDWallet.prototype.getPublicKey = function (account, addressIndex) {
 
 HDWallet.prototype.getAddress = function (account, addressIndex) {
   var self = this
-  var address = typeof account !== 'undefined' && typeof accaddressIndexount !== 'undefined' && self.addresses[account] && self.addresses[account][addressIndex]
+  var address = typeof account !== 'undefined' && typeof addressIndex !== 'undefined' && self.addresses[account] && self.addresses[account][addressIndex]
   if (!address) {
     address = self.getPublicKey(account, addressIndex).getAddress(self.network).toString()
     if (typeof account === 'undefined') {
