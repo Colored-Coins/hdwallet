@@ -225,6 +225,7 @@ HDWallet.prototype.getAddresses = function (callback) {
   var self = this
   self.getKeys(function (err, keys) {
     if (err) return callback(err)
+    keys = keys || []
     var addresses = []
     keys.forEach(function (key) {
       if (key.indexOf('address/') === 0) {
@@ -302,7 +303,7 @@ HDWallet.prototype.getAddressPath = function (address, callback) {
 HDWallet.prototype.discover = function (callback) {
   callback = callback || function () {}
   var self = this
-  if (self.discovering == false) return callback()
+  if (self.discovering == true) return callback()
   self.discovering = true
   return self.calcCurrentFringe(function (err, fringe) {
     if (err) return callback(err)
