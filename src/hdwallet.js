@@ -18,7 +18,7 @@ var MAX_EMPTY_ACCOUNTS = 3
 var MAX_EMPTY_ADDRESSES = 3
 
 var mainnetColuHost = 'https://engine.colu.co'
-var testnetColuHost = 'https://testnet.engine.colu.co'
+var testnetColuHost = 'https://testnet-engine.colu.co'
 
 var HDWallet = function (settings) {
   var self = this
