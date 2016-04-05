@@ -71,6 +71,7 @@ var HDWallet = function (settings) {
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
   self.nextAccount = 0
   self.addresses = []
+  self.preAddressesNodes = {}
   self.discovering = false
   if (settings.ds) {
     self.ds = settings.ds
@@ -140,7 +141,15 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
   var privateKey = key.toWIF(network)
   var privateSeed = key.d.toHex(32)
   var master = bitcoin.HDNode.fromSeedHex(privateSeed, network)
-  var extendedKey = deriveAccount(master, 0).toBase58(false)
+  var node = master
+  // BIP0044:
+  // purpose'
+  node = node.deriveHardened(44)
+  // coin_type'
+  node = node.deriveHardened(0)
+  // account'
+  node = node.deriveHardened(0)
+  var extendedKey = node.toBase58(false)
   var answer = {
     privateKey: privateKey,
     extendedPublicKey: extendedKey
@@ -189,7 +198,7 @@ HDWallet.prototype.afterDSInit = function (cb) {
 
 HDWallet.prototype.getAccount = function (index) {
   index = index || 0
-  var extendedKey = deriveAccount(this.master, index).toBase58(false)
+  var extendedKey = this.deriveAccount(index).toBase58(false)
   return extendedKey
 }
 
@@ -446,7 +455,7 @@ HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
     account = self.nextAccount++
   }
   addressIndex = addressIndex || 0
-  var hdnode = deriveAddress(self.master, account, addressIndex)
+  var hdnode = self.deriveAddress(account, addressIndex)
   var privateKey = hdnode.privKey
   privateKey.getFormattedValue = function() {
     return this.toWIF(self.network)
@@ -483,7 +492,7 @@ HDWallet.prototype.getAddress = function (account, addressIndex) {
 
 HDWallet.prototype.isAddressActive = function (addresses, callback) {
   var self = this
-
+  // console.log('addresses', addresses)
   if (typeof addresses === 'string') addresses = [addresses]
   request.post(self.coluHost + '/is_addresses_active',
     {json: {addresses: addresses}},
@@ -500,23 +509,36 @@ HDWallet.prototype.isAddressActive = function (addresses, callback) {
   )
 }
 
-var deriveAddress = function (master, accountIndex, addressIndex) {
-  var node = deriveAccount(master, accountIndex)
-
-  node = node.derive(0)
+HDWallet.prototype.deriveAddress = function (accountIndex, addressIndex) {
+  var node
+  if (this.preAddressesNodes[accountIndex]) {
+    node = this.preAddressesNodes[accountIndex]
+  } else {
+    node = this.deriveAccount(accountIndex)
+    // no change
+    node = node.derive(0)
+    this.preAddressesNodes[accountIndex] = node
+  }
+  
   // address_index
   node = node.derive(addressIndex)
 
   return node
 }
 
-var deriveAccount = function (master, accountIndex) {
-  var node = master
-  // BIP0044:
-  // purpose'
-  node = node.deriveHardened(44)
-  // coin_type'
-  node = node.deriveHardened(0)
+HDWallet.prototype.deriveAccount = function (accountIndex) {
+  var node
+  if (this.preAccountNode) {
+    node = this.preAccountNode
+  } else {
+    node = this.master
+    // BIP0044:
+    // purpose'
+    node = node.deriveHardened(44)
+    // coin_type'
+    node = node.deriveHardened(0)
+    this.preAccountNode = node
+  }
   // account'
   node = node.deriveHardened(accountIndex)
 
