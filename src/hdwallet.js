@@ -60,13 +60,13 @@ var HDWallet = function (settings) {
   }
   if (!self.privateSeed) {
     self.privateSeed = crypto.randomBytes(32)
-    self.needToDiscover = false
+    self.needToScan = false
   } else {
     if (!isValidSeed(self.privateSeed)) {
       throw new Error('privateSeed should be a 256 bits hex (64 chars), if you are using WIF, use privateSeedWIF instead.')
     }
     self.privateSeed = new Buffer(self.privateSeed, 'hex')
-    self.needToDiscover = true
+    self.needToScan = true
   }
   self.max_empty_accounts = settings.max_empty_accounts || MAX_EMPTY_ACCOUNTS
   self.max_empty_addresses = settings.max_empty_addresses || MAX_EMPTY_ADDRESSES
@@ -183,20 +183,15 @@ HDWallet.prototype.init = function (cb) {
 
 HDWallet.prototype.afterDSInit = function (cb) {
   var self = this
-  if (self.needToDiscover) {
-    self.discover(function (err) {
-      if (err) {
-        self.emit('error', err)
-        if (cb) return cb(err)
-        else return false
-      }
-      self.emit('connect')
-      if (cb) cb(null, self)
-    })
-  } else {
+  self.discover(function (err) {
+    if (err) {
+      self.emit('error', err)
+      if (cb) return cb(err)
+      else return false
+    }
     self.emit('connect')
-    if (cb) return cb(null, self)
-  }
+    if (cb) cb(null, self)
+  })
 }
 
 HDWallet.prototype.getAccount = function (index) {
@@ -351,13 +346,22 @@ HDWallet.prototype.discover = function (callback) {
             fringeAddresses = self.getFringeAddresses(fringe)
             // console.log('fringeAddresses:', JSON.stringify(fringeAddresses))
             var addresses = Object.keys(fringeAddresses)
-            self.isAddressActive(addresses, cb)
+            if (self.needToScan) {
+              self.isAddressActive(addresses, cb)
+            } else {
+              cb(null, addresses.map(function (address) {
+                return {
+                  address: address,
+                  active: false
+                }
+              }))
+            }
           },
           function (discoveredAddresses, cb) {
             allScaned = self.calcNextFringe(fringe, fringeAddresses, discoveredAddresses)
             if (allScaned) {
               self.saveFrienge(fringe)
-              self.needToDiscover = false
+              self.needToScan = true
             }
             cb()
           }
