@@ -1,8 +1,9 @@
+/* eslint-env mocha */
 var HDWallet = require('..')
 var chai = require('chai')
 chai.use(require('chai-string'))
-expect = chai.expect
-assert = chai.assert
+var expect = chai.expect
+var assert = chai.assert
 var bitcoin = require('bitcoinjs-lib')
 
 var privateSeed = 'ff92aaece15f7b179796f0b849ca69a869f1f043a45b1e4ba821f20db25a52c8'
@@ -17,6 +18,20 @@ describe('Test hdwallet', function () {
     assert.equal(typeof privateSeed, 'string', 'Should be a string.')
     assert.equal(privateSeed.length, 64, 'Should be 32 bytes long (hex string of 64 chars).')
     done()
+  })
+
+  it('Should return initial array of addresses', function (done) {
+    this.timeout(5000)
+    var hdwallet = new HDWallet({network: 'testnet'})
+    hdwallet.on('connect', function () {
+      hdwallet.getAddresses(function (err, addresses) {
+        assert.ifError(err)
+        expect(addresses).to.be.a('array')
+        expect(addresses).to.have.length.above(0)
+        done()
+      })
+    })
+    hdwallet.init()
   })
 
   it('Should load the same privateSeed.', function (done) {
