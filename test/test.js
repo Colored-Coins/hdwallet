@@ -76,7 +76,7 @@ describe('Test hdwallet', function () {
     hdwallet.init()
   })
 
-  it('Should save the private key of an address', function (done) {
+  it('Should save the private key of an address.', function (done) {
     this.timeout(60000)
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
     hdwallet.on('connect', function () {
@@ -90,7 +90,7 @@ describe('Test hdwallet', function () {
     hdwallet.init()
   })
 
-  it('Should save the private key of an address', function (done) {
+  it('Should save the private key of an address (halfed).', function (done) {
     this.timeout(60000)
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: halfedPrivateSeed})
     hdwallet.on('connect', function () {
