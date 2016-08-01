@@ -63,7 +63,7 @@ var HDWallet = function (settings) {
     self.needToDiscover = false
   } else {
     if (!isValidSeed(self.privateSeed)) {
-      throw new Error('privateSeed should be a 256 bits hex (64 chars), if you are using WIF, use privateSeedWIF instead.')
+      throw new Error('privateSeed should be a 128-256 bits hex string (32-64 chars), if you are using WIF, use privateSeedWIF instead.')
     }
     self.privateSeed = new Buffer(self.privateSeed, 'hex')
     self.needToDiscover = true
@@ -82,7 +82,7 @@ var HDWallet = function (settings) {
 }
 
 var isValidSeed = function (seed) {
-  return (typeof(seed) === 'string' && seed.length === 64 && !isNaN(parseInt(seed, 16)))
+  return (typeof(seed) === 'string' && seed.length >= 32 && seed.length <= 64 && seed.length % 2 === 0 && !isNaN(parseInt(seed, 16)))
 }
 
 util.inherits(HDWallet, events.EventEmitter)

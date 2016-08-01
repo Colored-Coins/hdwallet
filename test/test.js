@@ -6,9 +6,12 @@ assert = chai.assert
 var bitcoin = require('bitcoinjs-lib')
 
 var privateSeed = 'ff92aaece15f7b179796f0b849ca69a869f1f043a45b1e4ba821f20db25a52c8'
+var halfedPrivateSeed = '69f1f043a45b1e4ba821f20db25a52c8'
 var privateSeedWIF = 'cW9W4z8UHiypm2nmvsZmwMEcpdW95GNbbRXwJJNrwBKFMzBJbzR1'
-// var priv = 'cQ176k8LDck5aNJTQcXd7G4rCqGM3jhJyZ7MNawyzAfaWuVpP5Xb'
 var address = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
+var addressPriv = 'cTTRtU94sjuGE63U3PzzmMx3nsvzpCb21YXYegFUjftQHAymwofB'
+var halfedAddress = 'n13YCGhDVFJxyzz1PHjVqsa5LxEr5jV7bV'
+var halfedAddressPriv = 'cQVjENPfApC7zb8ZqKQqb6WcvjfvGhSbV8GEBwJBt2Pupb1pCYos'
 
 describe('Test hdwallet', function () {
   it('Should generate a private seed.', function (done) {
@@ -23,6 +26,13 @@ describe('Test hdwallet', function () {
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
     var hdSeed = hdwallet.getPrivateSeed()
     assert.equal(hdSeed, privateSeed, 'Seeds should be the same.')
+    done()
+  })
+
+  it('Should load the same halfedPrivateSeed.', function (done) {
+    var hdwallet = new HDWallet({network: 'testnet', privateSeed: halfedPrivateSeed})
+    var hdSeed = hdwallet.getPrivateSeed()
+    assert.equal(hdSeed, halfedPrivateSeed, 'Seeds should be the same.')
     done()
   })
 
@@ -42,13 +52,37 @@ describe('Test hdwallet', function () {
     hdwallet.init()
   })
 
+  it('Should init (halfed).', function (done) {
+    this.timeout(30000)
+    var hdwallet = new HDWallet({network: 'testnet', privateSeed: halfedPrivateSeed})
+    hdwallet.on('connect', function () {
+      done()
+    })
+    hdwallet.init()
+  })
+
   it('Should save the private key of an address', function (done) {
     this.timeout(60000)
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
     hdwallet.on('connect', function () {
       hdwallet.getAddressPrivateKey(address, function (err, priv) {
         assert.ifError(err)
-        assert(priv.toWIF(bitcoin.networks.testnet), priv)
+        assert(priv)
+        assert.equal(priv.toWIF(bitcoin.networks.testnet), addressPriv)
+        done()
+      })
+    })
+    hdwallet.init()
+  })
+
+  it('Should save the private key of an address', function (done) {
+    this.timeout(60000)
+    var hdwallet = new HDWallet({network: 'testnet', privateSeed: halfedPrivateSeed})
+    hdwallet.on('connect', function () {
+      hdwallet.getAddressPrivateKey(halfedAddress, function (err, priv) {
+        assert.ifError(err)
+        assert(priv)
+        assert.equal(priv.toWIF(bitcoin.networks.testnet), halfedAddressPriv)
         done()
       })
     })
