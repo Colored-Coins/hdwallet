@@ -11,6 +11,7 @@ var cs = require('coinstring')
 var hash = require('crypto-hashing')
 var crypto = require('crypto')
 var BigInteger = require('bigi')
+var _ = require('lodash')
 
 var DataStorage = require('data-storage')
 
@@ -520,19 +521,24 @@ HDWallet.prototype.isAddressActive = function (addresses, callback) {
   var self = this
   // console.log('addresses', addresses)
   if (typeof addresses === 'string') addresses = [addresses]
-  request.post(self.coluHost + '/is_addresses_active',
-    {json: {addresses: addresses}},
-    function (err, response, body) {
-      if (err) {
-        return callback(err)
+  async.map(_.chunk(addresses, 100), function (chunk, cb) {
+    request.post(self.coluHost + '/is_addresses_active',
+      {json: {addresses: chunk}},
+      function (err, response, body) {
+        if (err) {
+          return cb(err)
+        }
+        if (response.statusCode !== 200) {
+          return cb(body)
+        }
+        if (!body) return callback('Empty response from Colu server.')
+        return callback(null, body)
       }
-      if (response.statusCode !== 200) {
-        return callback(body)
-      }
-      if (!body) return callback('Empty response from Colu server.')
-      return callback(null, body)
-    }
-  )
+    )
+  }, function (err, ans) {
+    if (err) return callback(err)
+    callback(null, _.flatten(ans))
+  })
 }
 
 HDWallet.prototype.deriveAddress = function (accountIndex, addressIndex) {
