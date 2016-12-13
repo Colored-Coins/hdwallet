@@ -80,6 +80,7 @@ var HDWallet = function (settings) {
   if (settings.ds) {
     self.ds = settings.ds
   }
+  self.offline = !!settings.offline
 }
 
 var isValidSeed = function (seed) {
@@ -347,13 +348,13 @@ HDWallet.prototype.discover = function (callback) {
             fringeAddresses = self.getFringeAddresses(fringe)
             // console.log('fringeAddresses:', JSON.stringify(fringeAddresses))
             var addresses = Object.keys(fringeAddresses)
-            if (self.needToScan) {
+            if (self.needToScan && !self.offline) {
               self.isAddressActive(addresses, cb)
             } else {
               cb(null, addresses.map(function (address) {
                 return {
                   address: address,
-                  active: false
+                  active: self.offline
                 }
               }))
             }
