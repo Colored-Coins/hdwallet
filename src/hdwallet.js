@@ -354,7 +354,7 @@ HDWallet.prototype.discover = function (callback) {
               cb(null, addresses.map(function (address) {
                 return {
                   address: address,
-                  active: self.offline
+                  active: false
                 }
               }))
             }
