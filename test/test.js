@@ -5,8 +5,10 @@ chai.use(require('chai-string'))
 var expect = chai.expect
 var assert = chai.assert
 var bitcoin = require('bitcoinjs-lib')
+var bip39 = require('bip39')
 
 var privateSeed = 'ff92aaece15f7b179796f0b849ca69a869f1f043a45b1e4ba821f20db25a52c8'
+var mnemonic = 'state convince method grab route rain phone model february dry layer build'
 var halfedPrivateSeed = '69f1f043a45b1e4ba821f20db25a52c8'
 var privateSeedWIF = 'cW9W4z8UHiypm2nmvsZmwMEcpdW95GNbbRXwJJNrwBKFMzBJbzR1'
 var address = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
@@ -15,11 +17,15 @@ var halfedAddress = 'n13YCGhDVFJxyzz1PHjVqsa5LxEr5jV7bV'
 var halfedAddressPriv = 'cQVjENPfApC7zb8ZqKQqb6WcvjfvGhSbV8GEBwJBt2Pupb1pCYos'
 
 describe('Test hdwallet', function () {
-  it('Should generate a private seed.', function (done) {
+  it('Should generate a private seed and mnemonic.', function (done) {
     var hdwallet = new HDWallet({network: 'testnet'})
     var privateSeed = hdwallet.getPrivateSeed()
+    var mnemonic = hdwallet.getMnemonic()
     assert.equal(typeof privateSeed, 'string', 'Should be a string.')
-    assert.equal(privateSeed.length, 64, 'Should be 32 bytes long (hex string of 64 chars).')
+    assert.equal(privateSeed.length, 128, 'Should be 64 bytes long (hex string of 128 chars).')
+    assert.equal(typeof mnemonic, 'string', 'Should be a string.')
+    assert.equal(mnemonic.split(' ').length, 12, 'Should be a 12 word sentence.')
+    assert.equal(bip39.validateMnemonic(mnemonic), true, 'should be valid mnemonic.')
     done()
   })
 
@@ -41,6 +47,13 @@ describe('Test hdwallet', function () {
     var hdwallet = new HDWallet({network: 'testnet', privateSeed: privateSeed})
     var hdSeed = hdwallet.getPrivateSeed()
     assert.equal(hdSeed, privateSeed, 'Seeds should be the same.')
+    done()
+  })
+
+  it('Should load the same mnemonic.', function (done) {
+    var hdwallet = new HDWallet({network: 'testnet', mnemonic: mnemonic})
+    var hdSeed = hdwallet.getMnemonic()
+    assert.equal(hdSeed, mnemonic, 'Mnemonic should be the same.')
     done()
   })
 
