@@ -11,6 +11,7 @@ var cs = require('coinstring')
 var hash = require('crypto-hashing')
 var crypto = require('crypto')
 var BigInteger = require('bigi')
+var bip39 = require('bip39')
 var _ = require('lodash')
 
 var DataStorage = require('data-storage')
@@ -51,6 +52,7 @@ var HDWallet = function (settings) {
     throw new Error('Can\'t privateKey and privateSeedWIF should be the same (can use only one).')
   }
   self.privateSeed = settings.privateSeed || null
+  self.mnemonic = settings.mnemonic || null
   if (settings.privateKey) {
     console.warn('Deprecated: Please use privateSeedWIF and not privateKey.')
     settings.privateSeedWIF = settings.privateKey
@@ -59,15 +61,27 @@ var HDWallet = function (settings) {
     var privateKeySeedBigInt = bitcoin.ECKey.fromWIF(settings.privateSeedWIF, self.network).d
     self.privateSeed = privateKeySeedBigInt.toHex(32)
   }
-  if (!self.privateSeed) {
-    self.privateSeed = crypto.randomBytes(32)
+  if (!self.privateSeed && !self.mnemonic) {
+    self.mnemonic = bip39.generateMnemonic()
+    self.privateSeed = bip39.mnemonicToSeed(self.mnemonic)
     self.needToScan = false
   } else {
-    if (!isValidSeed(self.privateSeed)) {
-      throw new Error('privateSeed should be a 128-256 bits hex string (32-64 chars), if you are using WIF, use privateSeedWIF instead.')
+    if (self.mnemonic) {
+      if (!bip39.validateMnemonic(self.mnemonic)) {
+        throw new Error('Bad mnemonic.')
+      }
+      if (self.privateSeed && self.privateSeed !== bip39.mnemonicToSeedHex(self.mnemonic)) {
+        throw new Error('mnemonic and privateSeed mismatch.')
+      }
+      self.privateSeed = bip39.mnemonicToSeed(self.mnemonic)
+      self.needToScan = true
+    } else {
+      if (!isValidSeed(self.privateSeed)) {
+        throw new Error('privateSeed should be a 128-512 bits hex string (32-128 chars), if you are using WIF, use privateSeedWIF instead.')
+      }
+      self.privateSeed = new Buffer(self.privateSeed, 'hex')
+      self.needToScan = true
     }
-    self.privateSeed = new Buffer(self.privateSeed, 'hex')
-    self.needToScan = true
   }
   self.max_empty_accounts = settings.max_empty_accounts || MAX_EMPTY_ACCOUNTS
   self.max_empty_addresses = settings.max_empty_addresses || MAX_EMPTY_ADDRESSES
@@ -84,7 +98,7 @@ var HDWallet = function (settings) {
 }
 
 var isValidSeed = function (seed) {
-  return (typeof(seed) === 'string' && seed.length >= 32 && seed.length <= 64 && seed.length % 2 === 0 && !isNaN(parseInt(seed, 16)))
+  return (typeof(seed) === 'string' && seed.length >= 32 && seed.length <= 128 && seed.length % 2 === 0 && !isNaN(parseInt(seed, 16)))
 }
 
 util.inherits(HDWallet, events.EventEmitter)
@@ -471,9 +485,19 @@ HDWallet.prototype.getPrivateSeed = function () {
 }
 
 HDWallet.prototype.getPrivateSeedWIF = function () {
+  if (this.privateSeed.length > 256) {
+    throw new Error('Seed is bigger than 256 bits, try getPrivateSeed or getMnemonic instead.')
+  }
   var d = BigInteger.fromBuffer(this.privateSeed)
   var priv = new bitcoin.ECKey(d, true)
   return priv.toWIF(this.network)
+}
+
+HDWallet.prototype.getMnemonic = function () {
+  if (!this.mnemonic) {
+    throw new Error('Seed generated without mnemonic, try getPrivateSeed or getPrivateSeedWIF instead.')
+  }
+  return this.mnemonic
 }
 
 HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
