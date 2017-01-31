@@ -9,7 +9,6 @@ var CoinKey = require('coinkey')
 var Bip38 = require('bip38')
 var cs = require('coinstring')
 var hash = require('crypto-hashing')
-var crypto = require('crypto')
 var BigInteger = require('bigi')
 var bip39 = require('bip39')
 var _ = require('lodash')
@@ -180,6 +179,42 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
   return answer
 }
 
+HDWallet.sign = function (unsignedTxHex, privateKey) {
+  var tx = bitcoin.Transaction.fromHex(unsignedTxHex)
+  var txb = bitcoin.TransactionBuilder.fromTransaction(tx)
+  var insLength = tx.ins.length
+  for (var i = 0; i < insLength; i++) {
+    txb.inputs[i].scriptType = null
+    if (Array.isArray(privateKey)) {
+      txb.sign(i, privateKey[i])
+    } else {
+      txb.sign(i, privateKey)
+    }
+  }
+  tx = txb.build()
+  return tx.toHex()
+}
+
+HDWallet.getInputAddresses = function (txHex, network) {
+  network = network || bitcoin.networks.bitcoin
+  var addresses = []
+  var tx
+  try {
+    tx = bitcoin.Transaction.fromHex(txHex)
+  } catch (err) {
+    console.error('HDWallet.getInputAddresses: ', txHex)
+    console.error(err)
+    return null
+  }
+  tx.ins.forEach(function (input) {
+    if (!input.script) return addresses.push(null)
+    if (bitcoin.scripts.isPubKeyHashOutput(input.script)) return addresses.push(new bitcoin.Address(input.script.chunks[2], network.pubKeyHash).toString())
+    if (bitcoin.scripts.isScriptHashOutput(input.script)) return addresses.push(new bitcoin.Address(input.script.chunks[1], network.scriptHash).toString())
+    return addresses.push(null)
+  })
+  return addresses
+}
+
 HDWallet.prototype.init = function (cb) {
   var self = this
   if (self.ds) {
@@ -266,7 +301,6 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
   var addressKey = 'address/' + address
   change = (change) ? 1 : 0
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
-  // console.log('registering', address, addressValue)
   self.setDB(addressKey, addressValue)
   self.addresses[accountIndex] = self.addresses[accountIndex] || []
   self.addresses[accountIndex][addressIndex] = address
@@ -358,9 +392,7 @@ HDWallet.prototype.discover = function (callback) {
         var fringeAddresses
         async.waterfall([
           function (cb) {
-            // console.log('fringe:', JSON.stringify(fringe))
             fringeAddresses = self.getFringeAddresses(fringe)
-            // console.log('fringeAddresses:', JSON.stringify(fringeAddresses))
             var addresses = Object.keys(fringeAddresses)
             if (self.needToScan && !self.offline) {
               self.isAddressActive(addresses, cb)
@@ -401,10 +433,8 @@ HDWallet.prototype.calcCurrentFringe = function (callback) {
     var longest_fringe = fringe.length > self.known_fringe.length ? fringe : self.known_fringe
     longest_fringe = longest_fringe.map(function (data, i) {
       var nextUnused = Math.max(fringe[i] || 0, self.known_fringe[i] || 0)
-      // console.log('nextUnused', nextUnused)
       return {nextUnused: nextUnused, nextUnknown: nextUnused}
     })
-    // console.log('longest_fringe', longest_fringe)
     return callback(null, longest_fringe)
   })
 }
@@ -544,7 +574,6 @@ HDWallet.prototype.getAddress = function (account, addressIndex) {
 
 HDWallet.prototype.isAddressActive = function (addresses, callback) {
   var self = this
-  // console.log('addresses', addresses)
   if (typeof addresses === 'string') addresses = [addresses]
   async.map(_.chunk(addresses, 100), function (chunk, cb) {
     request.post(self.coluHost + '/is_addresses_active',
@@ -602,10 +631,33 @@ HDWallet.prototype.deriveAccount = function (accountIndex) {
   return node
 }
 
+HDWallet.prototype.sign = function (unsignedTxHex, callback) {
+  var self = this
+  var addresses = HDWallet.getInputAddresses(unsignedTxHex, self.network)
+  if (!addresses) return callback("can't find addresses to sign")
+  async.map(addresses,
+    function (address, cb) {
+      self.getAddressPrivateKey(address, cb)
+    },
+    function (err, privateKeys) {
+      if (err) return callback(err)
+      var signedTxHex = HDWallet.sign(unsignedTxHex, privateKeys)
+      callback(null, signedTxHex)
+    }
+  )
+}
+
 var doubleSha256 = function (message) {
   var sha = crypto.createHash('sha256').update(message).digest()
   sha = crypto.createHash('sha256').update(sha).digest('hex')
   return sha
 }
+
+// "static" methods to be instance methods too
+Object.keys(HDWallet).forEach(function (key) {
+  if (typeof HDWallet[key] === 'function') {
+    HDWallet.prototype[key] = HDWallet[key]
+  }
+})
 
 module.exports = HDWallet

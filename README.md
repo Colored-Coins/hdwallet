@@ -26,6 +26,11 @@ var hd = new HDWallet({
 ### API's
 
 ```js
+HDWallet.encryptPrivateKey(privateWif, password, progressCallback)	\\ BIP38
+HDWallet.decryptPrivateKey(encryptedPrivKey, password, network, progressCallback)  \\ BIP38
+HDWallet.createNewKey(network, password, progressCallback)
+HDWallet.getInputAddresses(txHex, network)
+HDWallet.sign(unsignedTxHex, privateKey)
 HDWallet.prototype.init(cb)
 HDWallet.prototype.afterRedisInit(cb)
 HDWallet.prototype.getKeyPrefix()
@@ -45,6 +50,7 @@ HDWallet.prototype.getPrivateKey(account, addressIndex)
 HDWallet.prototype.getPublicKey(account, addressIndex)
 HDWallet.prototype.isAddressActive(addresses, cb)
 HDWallet.prototype.getAddress(account, addressIndex)
+HDWallet.prototype.sign(unsignedTxHex, cb)
 ```
 
 ### Testing

@@ -51,7 +51,11 @@
     },
     {
       "name": "bejavu",
-      "email": "tal@colu.co"
+      "email": "tal@colu.com"
+    },
+    {
+      "name": "oleiba",
+      "email": "oded@colu.com"
     }
   ],
   "license": "https://www.colu.co/TOS",
