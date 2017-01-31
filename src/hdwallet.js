@@ -653,11 +653,4 @@ var doubleSha256 = function (message) {
   return sha
 }
 
-// "static" methods to be instance methods too
-Object.keys(HDWallet).forEach(function (key) {
-  if (typeof HDWallet[key] === 'function') {
-    HDWallet.prototype[key] = HDWallet[key]
-  }
-})
-
 module.exports = HDWallet
