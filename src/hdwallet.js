@@ -2,7 +2,6 @@
 var async = require('async')
 var util = require('util')
 var events = require('events')
-var request = require('request')
 var bitcoin = require('bitcoinjs-lib')
 var BlockExplorerRpc = require('blockexplorer-rpc')
 var crypto = require('crypto')
