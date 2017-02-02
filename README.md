@@ -19,7 +19,8 @@ var hd = new HDWallet({
   redisPort: 'optional',
   redisHost: 'optional',
   network: 'optional',
-  privateSeed: 'optional'
+  mnemonic: 'optional',
+  privateSeed: 'optional' // deprecated
 })
 ```
 
@@ -41,6 +42,7 @@ HDWallet.prototype.discoverAccount(accountIndex, cb)
 HDWallet.prototype.discoverAddress(accountIndex, addressIndex, interval, cb)
 HDWallet.prototype.registerAccount(account)
 HDWallet.prototype.getPrivateSeed()
+HDWallet.prototype.getMnemonic()
 HDWallet.prototype.getPrivateKey(account, addressIndex)
 HDWallet.prototype.getPublicKey(account, addressIndex)
 HDWallet.prototype.isAddressActive(addresses, cb)

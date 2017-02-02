@@ -488,6 +488,7 @@ HDWallet.prototype.getPrivateSeedWIF = function () {
   if (this.privateSeed.length > 256) {
     throw new Error('Seed is bigger than 256 bits, try getPrivateSeed or getMnemonic instead.')
   }
+  console.warn('Deprecated: getPrivateSeedWIF is deprecated.')
   var d = BigInteger.fromBuffer(this.privateSeed)
   var priv = new bitcoin.ECKey(d, true)
   return priv.toWIF(this.network)
