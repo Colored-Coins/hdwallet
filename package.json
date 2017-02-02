@@ -9,6 +9,7 @@
     "bip38": "1.4.0",
     "bip39": "^2.2.0",
     "bitcoinjs-lib": "~1.5.8",
+    "blockexplorer-rpc": "0.0.4",
     "coinkey": "^1.4.0",
     "coinstring": "^2.3.0",
     "crypto": "0.0.3",
@@ -18,8 +19,7 @@
     "lodash": "^4.16.4",
     "mkpath": "^0.1.0",
     "path-extra": "^1.0.3",
-    "redis": "^0.12.1",
-    "request": "2.69.0"
+    "redis": "^0.12.1"
   },
   "devDependencies": {
     "chai": "^3.3.0",
