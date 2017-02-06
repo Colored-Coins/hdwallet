@@ -15,6 +15,9 @@ var address = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
 var addressPriv = 'cTTRtU94sjuGE63U3PzzmMx3nsvzpCb21YXYegFUjftQHAymwofB'
 var halfedAddress = 'n13YCGhDVFJxyzz1PHjVqsa5LxEr5jV7bV'
 var halfedAddressPriv = 'cQVjENPfApC7zb8ZqKQqb6WcvjfvGhSbV8GEBwJBt2Pupb1pCYos'
+var unsignedTxHex = '0100000001d542409c9006cf73af5a09fa6814156b635b57a7c8929c7ad6d514254bb6d108020000001976a9143dccfff7d33c163957d94949789baf660bed5a6c88acffffffff0358020000000000001976a9140964477fbc5bcce8c2ddbd8b4c705ef60c5a91e788ac00000000000000000a6a084343010501000110207a0100000000001976a9143dccfff7d33c163957d94949789baf660bed5a6c88ac00000000'
+var expectedSignedTxHex = '0100000001d542409c9006cf73af5a09fa6814156b635b57a7c8929c7ad6d514254bb6d108020000006a47304402207b67c24b1602aef5e9da57685a1bf19ad4267f331ef061cfeace70ba7ab119b302206928a96dc9a86c443190759fddf2e372aed450305954a2db9deb36dc2a6115fd01210240042f2cfb410b4fab76a33dd36376fc752b03ee6f14708da6cd4d306670068bffffffff0358020000000000001976a9140964477fbc5bcce8c2ddbd8b4c705ef60c5a91e788ac00000000000000000a6a084343010501000110207a0100000000001976a9143dccfff7d33c163957d94949789baf660bed5a6c88ac00000000'
+var privateKey = bitcoin.ECKey.fromWIF('cQ176k8LDck5aNJTQcXd7G4rCqGM3jhJyZ7MNawyzAfaWuVpP5Xb')
 
 describe('Test hdwallet', function () {
   it('Should generate a private seed and mnemonic.', function (done) {
@@ -205,4 +208,17 @@ describe('Test hdwallet', function () {
     hdwallet.init()
   })
 
+  it('Should sign a transaction', function (done) {
+    var signtx = HDWallet.sign(unsignedTxHex, privateKey)
+    assert.equal(signtx, expectedSignedTxHex)
+    done()
+  })
+
+  it('Should find transaction addresses to sign', function (done) {
+    var addresses = HDWallet.getInputAddresses(unsignedTxHex, bitcoin.networks.testnet)
+    assert.ok(Array.isArray(addresses))
+    assert.equal(addresses.length, 1, 'Addresses array should contain only one address.')
+    assert.equal(addresses[0], 'mm9j6Pxp2LqAqVHqj7DBit724A6P8sk5yA', 'Addresses array should contain the expected address.')
+    done()
+  })
 })

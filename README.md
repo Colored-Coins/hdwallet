@@ -1,5 +1,5 @@
 # hdwallet
-[![Build Status](https://travis-ci.org/Colu-platform/hdwallet.svg?branch=master)](https://travis-ci.org/Colu-platform/hdwallet) [![Coverage Status](https://coveralls.io/repos/github/Colu-platform/hdwallet/badge.svg?branch=master)](https://coveralls.io/github/Colu-platform/hdwallet?branch=master) [![npm version](https://badge.fury.io/js/hdwallet.svg)](http://badge.fury.io/js/hdwallet)
+[![Build Status](https://travis-ci.org/Colored-Coins/hdwallet.svg?branch=master)](https://travis-ci.org/Colored-Coins/hdwallet) [![Coverage Status](https://coveralls.io/repos/github/Colored-Coins/hdwallet/badge.svg?branch=master)](https://coveralls.io/github/Colored-Coins/hdwallet?branch=master) [![npm version](https://badge.fury.io/js/hdwallet.svg)](http://badge.fury.io/js/hdwallet)
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
 
@@ -27,6 +27,11 @@ var hd = new HDWallet({
 ### API's
 
 ```js
+HDWallet.encryptPrivateKey(privateWif, password, progressCallback)	\\ BIP38
+HDWallet.decryptPrivateKey(encryptedPrivKey, password, network, progressCallback)  \\ BIP38
+HDWallet.createNewKey(network, password, progressCallback)
+HDWallet.getInputAddresses(txHex, network)
+HDWallet.sign(unsignedTxHex, privateKey)
 HDWallet.prototype.init(cb)
 HDWallet.prototype.afterRedisInit(cb)
 HDWallet.prototype.getKeyPrefix()
@@ -47,6 +52,7 @@ HDWallet.prototype.getPrivateKey(account, addressIndex)
 HDWallet.prototype.getPublicKey(account, addressIndex)
 HDWallet.prototype.isAddressActive(addresses, cb)
 HDWallet.prototype.getAddress(account, addressIndex)
+HDWallet.prototype.sign(unsignedTxHex, cb)
 ```
 
 ### Testing

@@ -2,14 +2,13 @@
 var async = require('async')
 var util = require('util')
 var events = require('events')
-var request = require('request')
 var bitcoin = require('bitcoinjs-lib')
+var BlockExplorerRpc = require('blockexplorer-rpc')
 var crypto = require('crypto')
 var CoinKey = require('coinkey')
 var Bip38 = require('bip38')
 var cs = require('coinstring')
 var hash = require('crypto-hashing')
-var crypto = require('crypto')
 var BigInteger = require('bigi')
 var bip39 = require('bip39')
 var _ = require('lodash')
@@ -19,20 +18,21 @@ var DataStorage = require('data-storage')
 var MAX_EMPTY_ACCOUNTS = 3
 var MAX_EMPTY_ADDRESSES = 3
 
-var mainnetColuHost = 'https://engine.colu.co'
-var testnetColuHost = 'https://testnet-engine.colu.co'
+var mainnetBlockExplorerHost = 'https://explorer.coloredcoins.org'
+var testnetBlockExplorerHost = 'https://testnet.explorer.coloredcoins.org'
 
 var HDWallet = function (settings) {
   var self = this
 
   settings = settings || {}
   if (settings.network === 'testnet') {
-    self.coluHost = settings.coluHost || testnetColuHost
+    settings.blockExplorerHost = settings.blockExplorerHost || testnetBlockExplorerHost
     self.network = bitcoin.networks.testnet
   } else {
-    self.coluHost = settings.coluHost || mainnetColuHost
+    settings.blockExplorerHost = settings.blockExplorerHost || mainnetBlockExplorerHost
     self.network = bitcoin.networks.bitcoin
   }
+  self.blockexplorer = new BlockExplorerRpc(settings.blockExplorerHost)
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
   if (settings.privateSeed && (settings.privateKey || settings.privateSeedWIF)) {
@@ -180,6 +180,42 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
   return answer
 }
 
+HDWallet.sign = function (unsignedTxHex, privateKey) {
+  var tx = bitcoin.Transaction.fromHex(unsignedTxHex)
+  var txb = bitcoin.TransactionBuilder.fromTransaction(tx)
+  var insLength = tx.ins.length
+  for (var i = 0; i < insLength; i++) {
+    txb.inputs[i].scriptType = null
+    if (Array.isArray(privateKey)) {
+      txb.sign(i, privateKey[i])
+    } else {
+      txb.sign(i, privateKey)
+    }
+  }
+  tx = txb.build()
+  return tx.toHex()
+}
+
+HDWallet.getInputAddresses = function (txHex, network) {
+  network = network || bitcoin.networks.bitcoin
+  var addresses = []
+  var tx
+  try {
+    tx = bitcoin.Transaction.fromHex(txHex)
+  } catch (err) {
+    console.error('HDWallet.getInputAddresses: ', txHex)
+    console.error(err)
+    return null
+  }
+  tx.ins.forEach(function (input) {
+    if (!input.script) return addresses.push(null)
+    if (bitcoin.scripts.isPubKeyHashOutput(input.script)) return addresses.push(new bitcoin.Address(input.script.chunks[2], network.pubKeyHash).toString())
+    if (bitcoin.scripts.isScriptHashOutput(input.script)) return addresses.push(new bitcoin.Address(input.script.chunks[1], network.scriptHash).toString())
+    return addresses.push(null)
+  })
+  return addresses
+}
+
 HDWallet.prototype.init = function (cb) {
   var self = this
   if (self.ds) {
@@ -266,7 +302,6 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
   var addressKey = 'address/' + address
   change = (change) ? 1 : 0
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
-  // console.log('registering', address, addressValue)
   self.setDB(addressKey, addressValue)
   self.addresses[accountIndex] = self.addresses[accountIndex] || []
   self.addresses[accountIndex][addressIndex] = address
@@ -358,9 +393,7 @@ HDWallet.prototype.discover = function (callback) {
         var fringeAddresses
         async.waterfall([
           function (cb) {
-            // console.log('fringe:', JSON.stringify(fringe))
             fringeAddresses = self.getFringeAddresses(fringe)
-            // console.log('fringeAddresses:', JSON.stringify(fringeAddresses))
             var addresses = Object.keys(fringeAddresses)
             if (self.needToScan && !self.offline) {
               self.isAddressActive(addresses, cb)
@@ -394,17 +427,15 @@ HDWallet.prototype.discover = function (callback) {
 HDWallet.prototype.calcCurrentFringe = function (callback) {
   var self = this
 
-  self.getDB('coluSdkfringe', function (err, fringe) {
+  self.getDB('fringe', function (err, fringe) {
     if (err) return callback(err)
     fringe = fringe || '[]'
     fringe = JSON.parse(fringe)
     var longest_fringe = fringe.length > self.known_fringe.length ? fringe : self.known_fringe
     longest_fringe = longest_fringe.map(function (data, i) {
       var nextUnused = Math.max(fringe[i] || 0, self.known_fringe[i] || 0)
-      // console.log('nextUnused', nextUnused)
       return {nextUnused: nextUnused, nextUnknown: nextUnused}
     })
-    // console.log('longest_fringe', longest_fringe)
     return callback(null, longest_fringe)
   })
 }
@@ -416,7 +447,7 @@ HDWallet.prototype.saveFrienge = function (fringe) {
     return account.nextUnused
   })
   cachedFringe = JSON.stringify(cachedFringe)
-  self.setDB('coluSdkfringe', cachedFringe)
+  self.setDB('fringe', cachedFringe)
 }
 
 HDWallet.prototype.getFringeAddresses = function (fringe) {
@@ -545,25 +576,17 @@ HDWallet.prototype.getAddress = function (account, addressIndex) {
 
 HDWallet.prototype.isAddressActive = function (addresses, callback) {
   var self = this
-  // console.log('addresses', addresses)
   if (typeof addresses === 'string') addresses = [addresses]
   async.map(_.chunk(addresses, 100), function (chunk, cb) {
-    request.post(self.coluHost + '/is_addresses_active',
-      {json: {addresses: chunk}},
-      function (err, response, body) {
-        if (err) {
-          return cb(err)
-        }
-        if (response.statusCode !== 200) {
-          return cb(body)
-        }
-        if (!body) return callback('Empty response from Colu server.')
-        return callback(null, body)
+    self.blockexplorer.post('isactive', {addresses: chunk},
+      function (err, res) {
+        if (err) return cb(err)
+        return callback(null, res)
       }
     )
-  }, function (err, ans) {
+  }, function (err, results) {
     if (err) return callback(err)
-    callback(null, _.flatten(ans))
+    callback(null, _.flatten(results))
   })
 }
 
@@ -601,6 +624,22 @@ HDWallet.prototype.deriveAccount = function (accountIndex) {
   node = node.deriveHardened(accountIndex)
 
   return node
+}
+
+HDWallet.prototype.sign = function (unsignedTxHex, callback) {
+  var self = this
+  var addresses = HDWallet.getInputAddresses(unsignedTxHex, self.network)
+  if (!addresses) return callback("can't find addresses to sign")
+  async.map(addresses,
+    function (address, cb) {
+      self.getAddressPrivateKey(address, cb)
+    },
+    function (err, privateKeys) {
+      if (err) return callback(err)
+      var signedTxHex = HDWallet.sign(unsignedTxHex, privateKeys)
+      callback(null, signedTxHex)
+    }
+  )
 }
 
 var doubleSha256 = function (message) {
