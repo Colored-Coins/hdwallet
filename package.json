@@ -1,7 +1,7 @@
 {
   "name": "hdwallet",
   "version": "0.4.33",
-  "description": "BIP44 wallet",
+  "description": "BIP32 & BIP44 Hierarchical Deterministic Wallet.",
   "main": "src/hdwallet.js",
   "dependencies": {
     "async": "^1.3.0",
@@ -33,14 +33,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Colu-platform/hdwallet.git"
+    "url": "https://github.com/Colored-Coins/hdwallet.git"
   },
   "keywords": [
     "hdwallet",
     "bip32",
     "bip44",
     "bitcoin",
-    "colu",
     "colored",
     "coins"
   ],
@@ -58,9 +57,9 @@
       "email": "oded@colu.com"
     }
   ],
-  "license": "https://www.colu.co/TOS",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Colu-platform/hdwallet/issues"
+    "url": "https://github.com/Colored-Coins/hdwallet/issues"
   },
-  "homepage": "https://github.com/Colu-platform/hdwallet"
+  "homepage": "https://github.com/Colored-Coins/hdwallet"
 }
