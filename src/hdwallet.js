@@ -300,8 +300,9 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
   var self = this
 
   var addressKey = 'address/' + address
+  var coinType = self.network === bitcoin.networks.bitcoin ? 0 : 1
   change = (change) ? 1 : 0
-  var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
+  var addressValue = 'm/44\'/' + coinType + '\'/' + accountIndex + '\'/' + change + '/' + addressIndex
   self.setDB(addressKey, addressValue)
   self.addresses[accountIndex] = self.addresses[accountIndex] || []
   self.addresses[accountIndex][addressIndex] = address
@@ -313,7 +314,7 @@ HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
 
   self.getAddressPath(address, function (err, addressPath) {
     if (err) return callback(err)
-    if (!addressPath) return callback('Addresss ' + address + ' privateKey not found.')
+    if (!addressPath) return callback('Address ' + address + ' privateKey not found.')
     var path = addressPath.split('/')
     if (!path.length || path[0] !== 'm') {
       return callback('Wrong path format')
