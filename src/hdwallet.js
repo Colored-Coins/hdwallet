@@ -165,7 +165,7 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
   // purpose'
   node = node.deriveHardened(44)
   // coin_type'
-  node = node.deriveHardened(0)
+  node = node.deriveHardened(network === bitcoin.networks.bitcoin ? 0 : 1)
   // account'
   node = node.deriveHardened(0)
   var extendedKey = node.toBase58(false)
@@ -617,7 +617,7 @@ HDWallet.prototype.deriveAccount = function (accountIndex) {
     // purpose'
     node = node.deriveHardened(44)
     // coin_type'
-    node = node.deriveHardened(0)
+    node = node.deriveHardened(this.network === bitcoin.networks.bitcoin ? 0 : 1)
     this.preAccountNode = node
   }
   // account'
