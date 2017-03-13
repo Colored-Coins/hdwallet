@@ -56,7 +56,7 @@
       "email": "oded@colu.com"
     }
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/Colored-Coins/hdwallet/issues"
   },
