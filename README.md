@@ -27,9 +27,11 @@ var hd = new HDWallet({
 ### API's
 
 ```js
-HDWallet.encryptPrivateKey(privateWif, password, progressCallback)	\\ BIP38
-HDWallet.decryptPrivateKey(encryptedPrivKey, password, network, progressCallback)  \\ BIP38
+HDWallet.encryptPrivateKey(privateWif, password, progressCallback)	// BIP38
+HDWallet.decryptPrivateKey(encryptedPrivKey, password, network, progressCallback)  // BIP38
 HDWallet.createNewKey(network, password, progressCallback)
+HDWallet.generateMnemonic()  // BIP39
+HDWallet.validateMnemonic()  // BIP39
 HDWallet.getInputAddresses(txHex, network)
 HDWallet.sign(unsignedTxHex, privateKey)
 HDWallet.prototype.init(cb)
