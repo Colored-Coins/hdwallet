@@ -1,6 +1,6 @@
 {
   "name": "hdwallet",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "BIP32 & BIP44 Hierarchical Deterministic Wallet.",
   "main": "src/hdwallet.js",
   "dependencies": {
