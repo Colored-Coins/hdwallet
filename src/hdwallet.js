@@ -180,6 +180,10 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
   return answer
 }
 
+HDWallet.validateMnemonic = bip39.validateMnemonic
+
+HDWallet.generateMnemonic = bip39.generateMnemonic
+
 HDWallet.sign = function (unsignedTxHex, privateKey) {
   var tx = bitcoin.Transaction.fromHex(unsignedTxHex)
   var txb = bitcoin.TransactionBuilder.fromTransaction(tx)

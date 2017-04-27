@@ -20,7 +20,18 @@ var expectedSignedTxHex = '0100000001d542409c9006cf73af5a09fa6814156b635b57a7c89
 var privateKey = bitcoin.ECKey.fromWIF('cQ176k8LDck5aNJTQcXd7G4rCqGM3jhJyZ7MNawyzAfaWuVpP5Xb')
 
 describe('Test hdwallet', function () {
-  it('Should generate a private seed and mnemonic.', function (done) {
+  it('Should generate bip39 mnemonic', function (done) {
+    var mnemonic = HDWallet.generateMnemonic()
+    assert.equal(bip39.validateMnemonic(mnemonic), true, 'should be valid mnemonic.')
+    done()
+  })
+
+  it('Should validate a valid mnemonic', function (done) {
+    assert.equal(HDWallet.validateMnemonic(mnemonic), true, 'should validate a valid mnemonic.')
+    done()
+  })
+
+  it('Should generate a private seed and mnemonic in constructor', function (done) {
     var hdwallet = new HDWallet({network: 'testnet'})
     var privateSeed = hdwallet.getPrivateSeed()
     var mnemonic = hdwallet.getMnemonic()
