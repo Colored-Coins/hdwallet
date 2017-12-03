@@ -414,7 +414,7 @@ HDWallet.prototype.discover = function (callback) {
           function (discoveredAddresses, cb) {
             allScaned = self.calcNextFringe(fringe, fringeAddresses, discoveredAddresses)
             if (allScaned) {
-              self.saveFrienge(fringe)
+              self.saveFringe(fringe)
               self.needToScan = true
             }
             cb()
@@ -445,7 +445,7 @@ HDWallet.prototype.calcCurrentFringe = function (callback) {
   })
 }
 
-HDWallet.prototype.saveFrienge = function (fringe) {
+HDWallet.prototype.saveFringe = function (fringe) {
   var self = this
 
   var cachedFringe = fringe.map(function (account) {
